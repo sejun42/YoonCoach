@@ -53,7 +53,7 @@ type GraphViewInitialData = {
 
 const CHART_WIDTH = 860;
 const CHART_HEIGHT = 300;
-const CHART_PADDING = { top: 20, right: 20, bottom: 40, left: 68 };
+const CHART_PADDING = { top: 30, right: 30, bottom: 50, left: 100 };
 
 function parseYmd(ymd: string) {
   const [year, month, day] = ymd.split("-").map(Number);
@@ -327,13 +327,13 @@ function WeightTrendChart({
                 x2={chart.width - CHART_PADDING.right}
                 y2={tick.y}
                 stroke="#e2e8f0"
-                strokeWidth="1"
+                strokeWidth="2"
               />
               <text
-                x={CHART_PADDING.left - 8}
-                y={tick.y + 4}
+                x={CHART_PADDING.left - 12}
+                y={tick.y + 6}
                 textAnchor="end"
-                fontSize={readabilityMode === "high" ? "12" : "11"}
+                fontSize={readabilityMode === "high" ? "22" : "20"}
                 fill="#1e293b"
                 fontWeight="700"
               >
@@ -346,9 +346,9 @@ function WeightTrendChart({
             <text
               key={`x-${tick.date}`}
               x={tick.x}
-              y={chart.height - 10}
+              y={chart.height - 12}
               textAnchor="middle"
-              fontSize={readabilityMode === "high" ? "12" : "11"}
+              fontSize={readabilityMode === "high" ? "22" : "20"}
               fill="#334155"
               fontWeight={readabilityMode === "high" ? "700" : "600"}
             >
@@ -363,8 +363,8 @@ function WeightTrendChart({
               fill="none"
               stroke="#94a3b8"
               strokeOpacity="0.75"
-              strokeDasharray="5 4"
-              strokeWidth="2"
+              strokeDasharray="8 6"
+              strokeWidth="3.5"
               points={chart.trendPolyline}
             />
           )}
@@ -374,7 +374,7 @@ function WeightTrendChart({
                 key={`trend-${point.date}-${index}`}
                 cx={point.x}
                 cy={point.y}
-                r="3.6"
+                r="6"
                 fill="#94a3b8"
                 className="cursor-pointer"
                 onClick={() =>
@@ -390,7 +390,7 @@ function WeightTrendChart({
           <polyline
             fill="none"
             stroke="#06b6d4"
-            strokeWidth={readabilityMode === "high" ? "3.2" : "2.4"}
+            strokeWidth={readabilityMode === "high" ? "5" : "4"}
             points={chart.recordPolyline}
           />
           {showRecordPoints &&
@@ -399,10 +399,10 @@ function WeightTrendChart({
                 key={`record-visible-${point.date}-${index}`}
                 cx={point.x}
                 cy={point.y}
-                r={readabilityMode === "high" ? "4.8" : "2.8"}
+                r={readabilityMode === "high" ? "8" : "5"}
                 fill="#0284c7"
                 stroke="#ffffff"
-                strokeWidth={readabilityMode === "high" ? "1.8" : "1.2"}
+                strokeWidth={readabilityMode === "high" ? "2.5" : "1.8"}
               />
             ))}
           {chart.recordPoints.map((point, index) => (
@@ -410,7 +410,7 @@ function WeightTrendChart({
               key={`record-hit-${point.date}-${index}`}
               cx={point.x}
               cy={point.y}
-              r="8"
+              r="24"
               fill="transparent"
               className="cursor-pointer"
               onClick={() =>

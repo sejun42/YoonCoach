@@ -163,13 +163,13 @@ export default function HomeDashboard() {
           <p className="label">식단 준수 상태</p>
           <div className="flex gap-2">
             {[
-              { key: "good", label: "잘 지켰어요" },
-              { key: "ok", label: "애매해요" },
-              { key: "bad", label: "못 지켰어요" }
+              { key: "good", label: "잘 지킴" },
+              { key: "ok", label: "애매함" },
+              { key: "bad", label: "못 지킴" }
             ].map((item) => (
               <button
                 key={item.key}
-                className={`btn ${adherence === item.key ? "btn-primary" : "btn-ghost"}`}
+                className={`btn flex-1 px-1 py-2 text-[14px] tracking-tight ${adherence === item.key ? "btn-primary" : "btn-ghost"}`}
                 onClick={() => setAdherence(item.key as "good" | "ok" | "bad")}
                 type="button"
               >
@@ -191,11 +191,10 @@ export default function HomeDashboard() {
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <button
             type="button"
-            className={`inline-flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-              showIntakeInput
+            className={`inline-flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition ${showIntakeInput
                 ? "border-blue-700 bg-blue-700 text-white"
                 : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-            }`}
+              }`}
             onClick={() => setShowIntakeInput((prev) => !prev)}
           >
             <span>섭취 매크로 수기 입력(선택)</span>

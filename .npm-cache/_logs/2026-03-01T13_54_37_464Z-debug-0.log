@@ -1,0 +1,33 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.13.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\YoonCoach\.npmrc
+5 silly config load:file:C:\Users\sejun\.npmrc
+6 silly config load:file:C:\Users\sejun\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:D:\YoonCoach\.npm-cache\_logs\2026-03-01T13_54_37_464Z-
+10 verbose logfile D:\YoonCoach\.npm-cache\_logs\2026-03-01T13_54_37_464Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest @prisma/client@^6.5.0
+15 silly packumentCache full:https://registry.npmmirror.com/@prisma%2fclient cache-miss
+16 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 1 failed with EACCES
+17 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 2 failed with EACCES
+18 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 3 failed with EACCES
+19 silly fetch manifest next@15.2.0
+20 silly packumentCache full:https://registry.npmmirror.com/next cache-miss
+21 http fetch GET https://registry.npmmirror.com/next attempt 1 failed with EACCES
+22 http fetch GET https://registry.npmmirror.com/next attempt 2 failed with EACCES
+23 http fetch GET https://registry.npmmirror.com/next attempt 3 failed with EACCES
+24 silly fetch manifest react@^19.0.0
+25 silly packumentCache full:https://registry.npmmirror.com/react cache-miss
+26 http fetch GET https://registry.npmmirror.com/react attempt 1 failed with EACCES
+27 http fetch GET https://registry.npmmirror.com/react attempt 2 failed with EACCES
+28 http fetch GET https://registry.npmmirror.com/react attempt 3 failed with EACCES
+29 silly fetch manifest react-dom@^19.0.0
+30 silly packumentCache full:https://registry.npmmirror.com/react-dom cache-miss
+31 http fetch GET https://registry.npmmirror.com/react-dom attempt 1 failed with EACCES
+32 http fetch GET https://registry.npmmirror.com/react-dom attempt 2 failed with EACCES

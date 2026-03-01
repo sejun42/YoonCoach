@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Sex {
+  male
+  female
+}
+
+enum ActivityLevel {
+  very_low
+  low
+  moderate
+  high
+  very_high
+}
+
+enum PlanPhase {
+  calibration
+  cut
+  bulk
+}
+
+enum GoalType {
+  target_weight
+  weekly_rate
+}
+
+enum AdherenceStatus {
+  good
+  ok
+  bad
+}
+
+enum CoachingReason {
+  weekly_auto
+  manual_request
+  calibration_end
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String
+  createdAt         DateTime           @default(now())
+  profile           Profile?
+  plans             Plan[]
+  weighIns          WeighIn[]
+  dailyCheckins     DailyCheckin[]
+  coachingLogs      CoachingLog[]
+  pushSubscriptions PushSubscription[]
+  settings          UserSetting?
+}
+
+model Profile {
+  userId     String        @id
+  sex        Sex
+  age        Int
+  heightCm   Int
+  timezone   String
+  activity   ActivityLevel
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Plan {
+  id              String    @id @default(cuid())
+  userId          String
+  phase           PlanPhase
+  goalType        GoalType
+  goalValue       Float
+  startDate       DateTime
+  endDate         DateTime
+  targetCalories  Int
+  targetCarbsG    Int
+  targetProteinG  Int
+  targetFatG      Int
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+  isActive        Boolean   @default(true)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model WeighIn {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime
+  weightKg   Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model DailyCheckin {
+  id             String           @id @default(cuid())
+  userId         String
+  date           DateTime
+  adherenceStatus AdherenceStatus
+  intakeKnown    Boolean
+  intakeCalories Int?
+  intakeCarbsG   Int?
+  intakeProteinG Int?
+  intakeFatG     Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model CoachingLog {
+  id           String        @id @default(cuid())
+  userId       String
+  runAt        DateTime      @default(now())
+  reason       CoachingReason
+  inputSnapshot Json
+  outputJson   Json
+  applied      Boolean       @default(false)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, runAt])
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String
+  p256dh     String
+  auth       String
+  deviceMeta Json?
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model UserSetting {
+  userId              String   @id
+  notifyTime          String   @default("08:30")
+  coachingDayOfWeek   Int      @default(0)
+  coachingTime        String   @default("09:00")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

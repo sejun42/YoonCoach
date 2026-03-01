@@ -1,0 +1,26 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.13.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\YoonCoach\.npmrc
+5 silly config load:file:C:\Users\sejun\.npmrc
+6 silly config load:file:C:\Users\sejun\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:D:\YoonCoach\.npm-cache\_logs\2026-03-01T13_52_31_341Z-
+10 verbose logfile D:\YoonCoach\.npm-cache\_logs\2026-03-01T13_52_31_341Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest @prisma/client@^6.5.0
+15 silly packumentCache full:https://registry.npmmirror.com/@prisma%2fclient cache-miss
+16 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 1 failed with EACCES
+17 http fetch GET https://registry.npmmirror.com/npm attempt 1 failed with EACCES
+18 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 2 failed with EACCES
+19 http fetch GET https://registry.npmmirror.com/npm attempt 2 failed with EACCES
+20 http fetch GET https://registry.npmmirror.com/@prisma%2fclient attempt 3 failed with EACCES
+21 silly fetch manifest next@15.2.0
+22 silly packumentCache full:https://registry.npmmirror.com/next cache-miss
+23 http fetch GET https://registry.npmmirror.com/npm attempt 3 failed with EACCES
+24 http fetch GET https://registry.npmmirror.com/next attempt 1 failed with EACCES
+25 http fetch GET https://registry.npmmirror.com/next attempt 2 failed with EACCES

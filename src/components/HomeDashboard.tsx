@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import CheckinCalendar from "./CheckinCalendar";
 
 type DashboardResponse = {
   ok: boolean;
@@ -39,6 +40,7 @@ export default function HomeDashboard() {
   const [intakeFat, setIntakeFat] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [refreshCalendar, setRefreshCalendar] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,6 +113,7 @@ export default function HomeDashboard() {
 
       setMessage("오늘 기록이 저장됐어요.");
       await load();
+      setRefreshCalendar((prev) => prev + 1);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "저장 중 오류가 발생했어요.");
     } finally {
@@ -192,8 +195,8 @@ export default function HomeDashboard() {
           <button
             type="button"
             className={`inline-flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition ${showIntakeInput
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+              ? "border-blue-700 bg-blue-700 text-white"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
               }`}
             onClick={() => setShowIntakeInput((prev) => !prev)}
           >
@@ -253,6 +256,8 @@ export default function HomeDashboard() {
         </button>
         {message && <p className="small mt-2">{message}</p>}
       </section>
+
+      <CheckinCalendar refreshTrigger={refreshCalendar} />
 
       <section className="panel p-4">
         <h3 className="font-bold">이번 주 상태</h3>

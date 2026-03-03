@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTransientToast } from "@/lib/useTransientToast";
 
 type Settings = {
   notify_time: string;
@@ -44,25 +45,7 @@ export default function SettingsPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [savingPush, setSavingPush] = useState(false);
-  const [planToastVisible, setPlanToastVisible] = useState(false);
-  const [planToastActive, setPlanToastActive] = useState(false);
-  const toastTimersRef = useRef<number[]>([]);
-
-  function clearPlanToastTimers() {
-    toastTimersRef.current.forEach((id) => window.clearTimeout(id));
-    toastTimersRef.current = [];
-  }
-
-  function showPlanSavedToast() {
-    clearPlanToastTimers();
-    setPlanToastVisible(true);
-
-    const enterId = window.setTimeout(() => setPlanToastActive(true), 10);
-    const exitId = window.setTimeout(() => setPlanToastActive(false), 1700);
-    const hideId = window.setTimeout(() => setPlanToastVisible(false), 2300);
-
-    toastTimersRef.current = [enterId, exitId, hideId];
-  }
+  const { toastMessage, toastActive, showToast } = useTransientToast();
 
   useEffect(() => {
     (async () => {
@@ -101,10 +84,30 @@ export default function SettingsPanel() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      clearPlanToastTimers();
-    };
-  }, []);
+    if (message) {
+      showToast(message);
+    }
+  }, [message, showToast]);
+
+  const handleButtonTapFeedback = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest("button");
+      if (!button || (button as HTMLButtonElement).disabled) {
+        return;
+      }
+
+      const manualFeedback = button.getAttribute("data-feedback");
+      if (manualFeedback) {
+        showToast(manualFeedback);
+        return;
+      }
+
+      const label = button.textContent?.trim() || "버튼";
+      showToast(`${label} 버튼을 눌렀어요.`);
+    },
+    [showToast]
+  );
 
   async function saveSettings() {
     setMessage(null);
@@ -165,8 +168,9 @@ export default function SettingsPanel() {
         setEndDate((p.endDate || "").slice(0, 10));
         setPreferredPhase(p.phase);
       }
+
       router.refresh();
-      showPlanSavedToast();
+      showToast("목표 재계산이 반영되었어요.");
     } catch {
       setMessage("목표 재계산 중 오류가 발생했습니다.");
     }
@@ -177,19 +181,19 @@ export default function SettingsPanel() {
     setMessage(null);
     try {
       if (!("serviceWorker" in navigator)) {
-        throw new Error("이 브라우저는 서비스워커를 지원하지 않습니다.");
+        throw new Error("이 기기에서는 푸시 알림을 지원하지 않습니다.");
       }
 
       if (!pushEnabled) {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
-          throw new Error("푸시 알림 권한이 필요합니다.");
+          throw new Error("푸시 알림 권한이 허용되지 않았습니다.");
         }
 
         const keyRes = await fetch("/api/push/public-key");
         const keyJson = await keyRes.json();
         if (!keyJson.publicKey) {
-          throw new Error("서버 VAPID 키가 설정되지 않았습니다.");
+          throw new Error("푸시 공개키를 불러오지 못했습니다.");
         }
 
         const registration = await navigator.serviceWorker.register("/sw.js");
@@ -231,12 +235,12 @@ export default function SettingsPanel() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClickCapture={handleButtonTapFeedback}>
       <section className="panel p-4">
         <h2 className="text-lg font-bold">알림/자동 코칭 시간</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <div>
-            <label className="label">일일 알림 시간</label>
+            <label className="label">아침 알림 시간</label>
             <input
               className="field"
               type="time"
@@ -249,9 +253,7 @@ export default function SettingsPanel() {
             <select
               className="field"
               value={settings.coaching_day_of_week}
-              onChange={(e) =>
-                setSettings((prev) => ({ ...prev, coaching_day_of_week: Number(e.target.value) }))
-              }
+              onChange={(e) => setSettings((prev) => ({ ...prev, coaching_day_of_week: Number(e.target.value) }))}
             >
               {dayNames.map((name, idx) => (
                 <option value={idx} key={name}>
@@ -270,7 +272,7 @@ export default function SettingsPanel() {
             />
           </div>
         </div>
-        <button className="btn btn-primary mt-4" onClick={saveSettings}>
+        <button className="btn btn-primary mt-4" onClick={saveSettings} data-feedback="설정을 저장하는 중입니다.">
           저장
         </button>
       </section>
@@ -278,22 +280,22 @@ export default function SettingsPanel() {
       <section className="panel p-4">
         <h2 className="text-lg font-bold">목표 수정(플랜 재계산)</h2>
         {!plan ? (
-          <p className="small mt-2">활성 플랜이 없습니다.</p>
+          <p className="small mt-2">현재 플랜 정보가 없습니다.</p>
         ) : (
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div>
-              <label className="label">목표 방식</label>
+              <label className="label">목표 타입</label>
               <select
                 className="field"
                 value={goalType}
                 onChange={(e) => setGoalType(e.target.value as "target_weight" | "weekly_rate")}
               >
                 <option value="target_weight">목표 체중</option>
-                <option value="weekly_rate">주당 변화율</option>
+                <option value="weekly_rate">주간 변화율</option>
               </select>
             </div>
             <div>
-              <label className="label">{goalType === "target_weight" ? "목표 체중(kg)" : "주당 변화율(%)"}</label>
+              <label className="label">{goalType === "target_weight" ? "목표 체중(kg)" : "주간 변화율(%)"}</label>
               <input
                 className="field"
                 type="number"
@@ -307,7 +309,7 @@ export default function SettingsPanel() {
               <input className="field" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
             <div>
-              <label className="label">플랜 단계</label>
+              <label className="label">선호 페이즈</label>
               <select
                 className="field"
                 value={preferredPhase}
@@ -320,35 +322,45 @@ export default function SettingsPanel() {
             </div>
           </div>
         )}
-        <button className="btn btn-primary mt-4" onClick={savePlan}>
+        <button className="btn btn-primary mt-4" onClick={savePlan} data-feedback="목표를 재계산하는 중입니다.">
           목표 재계산
         </button>
       </section>
 
       <section className="panel p-4">
-        <h2 className="text-lg font-bold">PWA 설치 / 푸시</h2>
+        <h2 className="text-lg font-bold">PWA 설치 / 푸시 알림</h2>
         <ul className="mt-2 list-disc pl-5 text-sm text-gray-700">
           <li>Android Chrome: 메뉴에서 홈 화면에 추가</li>
-          <li>iOS Safari: 공유에서 홈 화면에 추가</li>
-          <li>설치 후 알림을 켜면 매일 체크인 리마인드와 목표 매크로 알림을 받을 수 있습니다.</li>
+          <li>iOS Safari: 공유 메뉴에서 홈 화면에 추가</li>
+          <li>설치 후 알림을 켜면 체크인/코칭 리마인더를 받을 수 있습니다.</li>
         </ul>
-        <button className="btn btn-primary mt-4" onClick={togglePush} disabled={savingPush}>
-          {savingPush ? "처리 중..." : pushEnabled ? "푸시 알림 끄기" : "푸시 알림 켜기"}
+        <button
+          className="btn btn-primary mt-4"
+          onClick={togglePush}
+          disabled={savingPush}
+          data-feedback={pushEnabled ? "푸시 알림을 끄는 중입니다." : "푸시 알림을 켜는 중입니다."}
+        >
+          {savingPush ? "설정 중..." : pushEnabled ? "푸시 알림 끄기" : "푸시 알림 켜기"}
         </button>
       </section>
 
       <section className="panel p-4">
         <h2 className="text-lg font-bold">데이터 내보내기</h2>
         <p className="small mt-1">체중/체크인/코칭 로그를 CSV로 다운로드합니다.</p>
-        <button className="btn btn-ghost mt-3" onClick={() => (window.location.href = "/api/export/csv")}>
+        <button
+          className="btn btn-ghost mt-3"
+          data-feedback="CSV 다운로드를 시작합니다."
+          onClick={() => (window.location.href = "/api/export/csv")}
+        >
           CSV 다운로드
         </button>
       </section>
 
       <section className="panel p-4">
-        <h2 className="text-lg font-bold">계정</h2>
+        <h2 className="text-lg font-bold">로그아웃</h2>
         <button
           className="btn btn-ghost mt-2"
+          data-feedback="로그아웃 중입니다."
           onClick={async () => {
             await fetch("/api/auth/logout", { method: "POST" });
             router.replace("/auth");
@@ -359,12 +371,13 @@ export default function SettingsPanel() {
       </section>
 
       {message && <p className="small">{message}</p>}
-      {planToastVisible && (
+      {toastMessage && (
         <div
-          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${planToastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
-            }`}
+          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${
+            toastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+          }`}
         >
-          목표 재계산이 반영됐어요
+          {toastMessage}
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useTransientToast } from "@/lib/useTransientToast";
 
 type CoachingOutput = {
   decision: "decrease" | "maintain" | "increase";
@@ -28,6 +29,7 @@ export default function CoachingPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [weighInCount7d, setWeighInCount7d] = useState(0);
   const [checkinCount7d, setCheckinCount7d] = useState(0);
+  const { toastMessage, toastActive, showToast } = useTransientToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,7 +45,7 @@ export default function CoachingPanel() {
       const dashboardJson = await dashboardRes.json();
 
       if (!latestRes.ok || !historyRes.ok || !dashboardRes.ok) {
-        throw new Error("코칭 정보를 불러오지 못했어요.");
+        throw new Error("코칭 정보를 불러오지 못했습니다.");
       }
 
       setLatest(latestJson.coaching);
@@ -51,47 +53,82 @@ export default function CoachingPanel() {
       setWeighInCount7d(dashboardJson.weighInCount7d || 0);
       setCheckinCount7d(dashboardJson.checkinCount7d || 0);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류");
+      setMessage(e instanceof Error ? e.message : "오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
+
+  useEffect(() => {
+    if (message) {
+      showToast(message);
+    }
+  }, [message, showToast]);
 
   const ready = useMemo(() => weighInCount7d >= 4 && checkinCount7d >= 3, [weighInCount7d, checkinCount7d]);
 
+  const handleButtonTapFeedback = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest("button");
+      if (!button || (button as HTMLButtonElement).disabled) {
+        return;
+      }
+
+      const manualFeedback = button.getAttribute("data-feedback");
+      if (manualFeedback) {
+        showToast(manualFeedback);
+        return;
+      }
+
+      const label = button.textContent?.trim() || "버튼";
+      showToast(`${label} 버튼을 눌렀어요.`);
+    },
+    [showToast]
+  );
+
   async function runManualCoaching() {
+    if (!ready) {
+      showToast("데이터가 부족해서 코칭을 아직 실행할 수 없어요.");
+      return;
+    }
+    if (running) {
+      return;
+    }
+
     setRunning(true);
     setMessage(null);
     try {
       const res = await fetch("/api/coaching/run", { method: "POST" });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || json.reason || "코칭 실행 실패");
+        throw new Error(json.error || json.reason || "코칭 실행에 실패했습니다.");
       }
+
       setMessage("코칭이 실행되어 목표가 업데이트됐습니다.");
       await load();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류");
+      setMessage(e instanceof Error ? e.message : "오류가 발생했습니다.");
     } finally {
       setRunning(false);
     }
   }
 
   if (loading) {
-    return <div className="panel p-4">불러오는 중...</div>;
+    return <div className="panel p-4">불러오는 중입니다...</div>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClickCapture={handleButtonTapFeedback}>
       {!ready && (
         <section className="panel border-amber-200 bg-amber-50 p-4">
           <h2 className="font-bold text-amber-900">데이터가 아직 부족해요</h2>
           <p className="mt-1 text-sm text-amber-900">
-            최근 7일 체중 {weighInCount7d}/4회, 체크인 {checkinCount7d}/3회가 필요합니다.
+            최근 7일 기준 체중 {weighInCount7d}/4회, 체크인 {checkinCount7d}/3회가 필요합니다.
           </p>
         </section>
       )}
@@ -99,7 +136,13 @@ export default function CoachingPanel() {
       <section className="panel p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">최신 코칭</h2>
-          <button className="btn btn-primary" disabled={!ready || running} onClick={runManualCoaching}>
+          <button
+            className={`btn btn-primary ${!ready ? "opacity-60" : ""}`}
+            disabled={running}
+            aria-disabled={!ready}
+            data-feedback="코칭 실행을 시도합니다."
+            onClick={runManualCoaching}
+          >
             {running ? "실행 중..." : "지금 코칭 받기"}
           </button>
         </div>
@@ -111,10 +154,10 @@ export default function CoachingPanel() {
             <p className="small">
               {new Date(latest.run_at).toLocaleString()} / {latest.reason}
             </p>
-            <p className="mt-2 text-lg font-bold">조정안: {latest.output_json.decision}</p>
+            <p className="mt-2 text-lg font-bold">결정: {latest.output_json.decision}</p>
             <p className="mt-1 text-sm">
-              다음 목표: {latest.output_json.next_calories}kcal | 탄 {latest.output_json.next_macros_g.carbs}g
-              {" / "}단 {latest.output_json.next_macros_g.protein}g / 지 {latest.output_json.next_macros_g.fat}g
+              다음 목표: {latest.output_json.next_calories}kcal | 탄수 {latest.output_json.next_macros_g.carbs}g{" / "}
+              단백질 {latest.output_json.next_macros_g.protein}g / 지방 {latest.output_json.next_macros_g.fat}g
             </p>
             <p className="mt-2 text-sm">{latest.output_json.rationale_short}</p>
             <p className="mt-1 text-sm font-semibold">팁: {latest.output_json.behavior_tip}</p>
@@ -138,8 +181,7 @@ export default function CoachingPanel() {
                   {new Date(log.run_at).toLocaleString()} / {log.reason}
                 </p>
                 <p>
-                  {log.output_json.decision} | {log.output_json.next_calories} kcal | dq:
-                  {log.output_json.data_quality}
+                  {log.output_json.decision} | {log.output_json.next_calories} kcal | dq: {log.output_json.data_quality}
                 </p>
               </li>
             ))}
@@ -148,6 +190,15 @@ export default function CoachingPanel() {
       </section>
 
       {message && <p className="small">{message}</p>}
+      {toastMessage && (
+        <div
+          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${
+            toastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+          }`}
+        >
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

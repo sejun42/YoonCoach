@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useTransientToast } from "@/lib/useTransientToast";
 
 type WeighIn = {
   id: string;
@@ -28,6 +29,7 @@ export default function WeightsManager() {
   const [editWeight, setEditWeight] = useState("");
   const [newDate, setNewDate] = useState(todayYmd());
   const [newWeight, setNewWeight] = useState("");
+  const { toastMessage, toastActive, showToast } = useTransientToast();
 
   async function load() {
     setLoading(true);
@@ -60,6 +62,32 @@ export default function WeightsManager() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      showToast(message);
+    }
+  }, [message, showToast]);
+
+  const handleButtonTapFeedback = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest("button");
+      if (!button || (button as HTMLButtonElement).disabled) {
+        return;
+      }
+
+      const manualFeedback = button.getAttribute("data-feedback");
+      if (manualFeedback) {
+        showToast(manualFeedback);
+        return;
+      }
+
+      const label = button.textContent?.trim() || "버튼";
+      showToast(`${label} 버튼을 눌렀어요.`);
+    },
+    [showToast]
+  );
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => (a.date < b.date ? 1 : -1)), [rows]);
 
@@ -131,7 +159,7 @@ export default function WeightsManager() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClickCapture={handleButtonTapFeedback}>
       <section className="panel p-4">
         <h2 className="text-lg font-bold">공복 체중 추가</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -150,7 +178,7 @@ export default function WeightsManager() {
             />
           </div>
           <div className="flex items-end">
-            <button className="btn btn-primary w-full" onClick={addOrUpdate}>
+            <button className="btn btn-primary w-full" onClick={addOrUpdate} data-feedback="체중 저장 중입니다.">
               저장
             </button>
           </div>
@@ -169,7 +197,7 @@ export default function WeightsManager() {
             <input className="field" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <div className="flex items-end">
-            <button className="btn btn-ghost w-full" onClick={load}>
+            <button className="btn btn-ghost w-full" onClick={load} data-feedback="체중 기록을 불러오는 중입니다.">
               조회
             </button>
           </div>
@@ -200,10 +228,10 @@ export default function WeightsManager() {
                 <div className="flex gap-2">
                   {editId === row.id ? (
                     <>
-                      <button className="btn btn-primary" onClick={() => saveEdit(row.id)}>
+                      <button className="btn btn-primary" onClick={() => saveEdit(row.id)} data-feedback="체중을 수정하는 중입니다.">
                         저장
                       </button>
-                      <button className="btn btn-ghost" onClick={() => setEditId(null)}>
+                      <button className="btn btn-ghost" onClick={() => setEditId(null)} data-feedback="수정을 취소했어요.">
                         취소
                       </button>
                     </>
@@ -218,7 +246,7 @@ export default function WeightsManager() {
                       >
                         수정
                       </button>
-                      <button className="btn btn-ghost" onClick={() => remove(row.id)}>
+                      <button className="btn btn-ghost" onClick={() => remove(row.id)} data-feedback="체중 기록을 삭제하는 중입니다.">
                         삭제
                       </button>
                     </>
@@ -231,6 +259,15 @@ export default function WeightsManager() {
       </section>
 
       {message && <p className="small">{message}</p>}
+      {toastMessage && (
+        <div
+          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${
+            toastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+          }`}
+        >
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

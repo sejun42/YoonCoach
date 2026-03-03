@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import CheckinCalendar from "./CheckinCalendar";
+import { useTransientToast } from "@/lib/useTransientToast";
 
 type DashboardResponse = {
   ok: boolean;
@@ -44,6 +45,7 @@ export default function HomeDashboard() {
   const [weightMessage, setWeightMessage] = useState<string | null>(null);
   const [checkinMessage, setCheckinMessage] = useState<string | null>(null);
   const [refreshCalendar, setRefreshCalendar] = useState(0);
+  const { toastMessage, toastActive, showToast } = useTransientToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +67,38 @@ export default function HomeDashboard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (weightMessage) {
+      showToast(weightMessage);
+    }
+  }, [weightMessage, showToast]);
+
+  useEffect(() => {
+    if (checkinMessage) {
+      showToast(checkinMessage);
+    }
+  }, [checkinMessage, showToast]);
+
+  const handleButtonTapFeedback = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest("button");
+      if (!button || (button as HTMLButtonElement).disabled) {
+        return;
+      }
+
+      const manualFeedback = button.getAttribute("data-feedback");
+      if (manualFeedback) {
+        showToast(manualFeedback);
+        return;
+      }
+
+      const label = button.textContent?.trim() || "버튼";
+      showToast(`${label} 버튼을 눌렀어요.`);
+    },
+    [showToast]
+  );
 
   const coachingReady = useMemo(() => {
     if (!data) {
@@ -153,7 +187,7 @@ export default function HomeDashboard() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClickCapture={handleButtonTapFeedback}>
       <section className="panel p-4">
         <p className="small mb-2">오늘 목표</p>
         <div className="kpi">{data.plan.targetCalories} kcal</div>
@@ -183,7 +217,12 @@ export default function HomeDashboard() {
             />
           </div>
         </div>
-        <button className="btn btn-primary mt-4 w-full md:w-auto" onClick={submitWeight} disabled={savingWeight}>
+        <button
+          className="btn btn-primary mt-4 w-full md:w-auto"
+          onClick={submitWeight}
+          disabled={savingWeight}
+          data-feedback="체중을 저장하는 중입니다."
+        >
           {savingWeight ? "저장 중.." : "체중 저장"}
         </button>
         {weightMessage && <p className="small mt-2">{weightMessage}</p>}
@@ -290,7 +329,12 @@ export default function HomeDashboard() {
           )}
         </div>
 
-        <button className="btn btn-primary mt-5 w-full md:w-auto" onClick={submitCheckin} disabled={savingCheckin}>
+        <button
+          className="btn btn-primary mt-5 w-full md:w-auto"
+          onClick={submitCheckin}
+          disabled={savingCheckin}
+          data-feedback="체크인을 저장하는 중입니다."
+        >
           {savingCheckin ? "저장 중.." : "체크인 저장"}
         </button>
         {checkinMessage && <p className="small mt-2">{checkinMessage}</p>}
@@ -313,6 +357,15 @@ export default function HomeDashboard() {
             최근 7일 기준 체중 {data.weighInCount7d}/4회, 체크인 {data.checkinCount7d}/3회입니다.
           </p>
         </section>
+      )}
+      {toastMessage && (
+        <div
+          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${
+            toastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+          }`}
+        >
+          {toastMessage}
+        </div>
       )}
     </div>
   );

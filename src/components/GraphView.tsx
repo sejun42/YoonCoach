@@ -40,24 +40,90 @@ type DashboardPayload = {
   ok: boolean;
   weighIns: Array<{ date: string; weightKg: number }>;
   movingAverages: Array<{ date: string; avg: number }>;
-  delta7dAvgKg: number | null;
-  weeklyRatePercent: number | null;
+  plan: PlanSummary | null;
 };
 
 type GraphViewInitialData = {
   weighIns: Row[];
   movingAverages: MA[];
-  delta7dAvgKg: number | null;
-  weeklyRatePercent: number | null;
+  plan: PlanSummary | null;
+};
+
+type PlanSummary = {
+  phase: "calibration" | "cut" | "bulk";
+  goalType: "target_weight" | "weekly_rate";
+  goalValue: number;
+  startDate: string;
+  endDate: string;
+};
+
+type GoalDirection = "loss" | "gain";
+type ProgressMode = "cut" | "bulk";
+
+type DietProgress = {
+  rangeStartDate: string;
+  rangeEndDate: string;
+  mode: ProgressMode;
+  overallChangeKg: number;
+  direction: GoalDirection;
+  remainingKg: number | null;
+  progressPercent: number | null;
+  weeklyRequiredKg: number | null;
+  weeklyActualKg: number | null;
+  weeklyAchievementPercent: number | null;
+  pacePerWeekKg: number | null;
+  paceVsRequiredPercent: number | null;
 };
 
 const CHART_WIDTH = 860;
 const CHART_HEIGHT = 300;
 const CHART_PADDING = { top: 30, right: 30, bottom: 50, left: 100 };
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 function parseYmd(ymd: string) {
   const [year, month, day] = ymd.split("-").map(Number);
   return new Date(year, month - 1, day);
+}
+
+function normalizeYmd(value: string) {
+  return value.slice(0, 10);
+}
+
+function toOneDecimal(value: number) {
+  return Number(value.toFixed(1));
+}
+
+function toPercent(value: number) {
+  return Number(value.toFixed(1));
+}
+
+function toSignedKg(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
+}
+
+function toKg(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+  return value.toFixed(1);
+}
+
+function toPercentText(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+  return `${value.toFixed(1)}%`;
+}
+
+function dateDiffInDays(start: Date, end: Date) {
+  return (end.getTime() - start.getTime()) / MS_PER_DAY;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function addDays(date: Date, amount: number) {
@@ -264,6 +330,63 @@ function buildChartModel(
   };
 }
 
+function pickReferenceRow(rows: Row[], refDate: Date) {
+  const beforeOrEqual = [...rows].reverse().find((row) => parseYmd(row.date) <= refDate);
+  if (beforeOrEqual) {
+    return beforeOrEqual;
+  }
+  return rows.find((row) => parseYmd(row.date) >= refDate) ?? null;
+}
+
+function signedProgress(deltaKg: number, direction: GoalDirection) {
+  return direction === "loss" ? -deltaKg : deltaKg;
+}
+
+function ProgressRing({ percent, mode }: { percent: number | null; mode: ProgressMode }) {
+  const safePercent = percent === null ? null : clamp(percent, 0, 100);
+  const radius = 50;
+  const strokeWidth = 12;
+  const normalizedRadius = radius - strokeWidth / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const strokeDashoffset =
+    safePercent === null ? circumference : circumference - (safePercent / 100) * circumference;
+  const ringColor = mode === "bulk" ? "#d97706" : "#059669";
+  const ringBgColor = mode === "bulk" ? "#fef3c7" : "#d1fae5";
+
+  return (
+    <div className="flex items-center justify-center">
+      <div className="relative h-28 w-28">
+        <svg viewBox="0 0 100 100" className="-rotate-90 h-full w-full">
+          <circle
+            cx="50"
+            cy="50"
+            r={normalizedRadius}
+            fill="none"
+            stroke={ringBgColor}
+            strokeWidth={strokeWidth}
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r={normalizedRadius}
+            fill="none"
+            stroke={ringColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`text-lg font-black ${mode === "bulk" ? "text-amber-700" : "text-emerald-700"}`}>
+            {toPercentText(percent)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WeightTrendChart({
   title,
   subtitle,
@@ -457,8 +580,7 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
   const [error, setError] = useState<string | null>(null);
   const [weighIns, setWeighIns] = useState<Row[]>(initialData?.weighIns ?? []);
   const [ma, setMa] = useState<MA[]>(initialData?.movingAverages ?? []);
-  const [delta, setDelta] = useState<number | null>(initialData?.delta7dAvgKg ?? null);
-  const [weeklyRate, setWeeklyRate] = useState<number | null>(initialData?.weeklyRatePercent ?? null);
+  const [plan, setPlan] = useState<PlanSummary | null>(initialData?.plan ?? null);
   const [selected7d, setSelected7d] = useState<SelectedPoint | null>(null);
   const [selectedAll, setSelectedAll] = useState<SelectedPoint | null>(null);
 
@@ -484,8 +606,7 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
 
         setWeighIns(json.weighIns);
         setMa(json.movingAverages);
-        setDelta(json.delta7dAvgKg);
-        setWeeklyRate(json.weeklyRatePercent);
+        setPlan(json.plan);
         setError(null);
       } catch (e) {
         if (!initialData) {
@@ -519,6 +640,124 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
 
     return { rows, trendRows };
   }, [weighIns, ma]);
+
+  const progress = useMemo<DietProgress>(() => {
+    const first = weighIns[0];
+    const latest = weighIns[weighIns.length - 1];
+
+    if (!first || !latest) {
+      return {
+        rangeStartDate: "-",
+        rangeEndDate: "-",
+        mode: "cut",
+        overallChangeKg: 0,
+        direction: "loss",
+        remainingKg: null,
+        progressPercent: null,
+        weeklyRequiredKg: null,
+        weeklyActualKg: null,
+        weeklyAchievementPercent: null,
+        pacePerWeekKg: null,
+        paceVsRequiredPercent: null
+      };
+    }
+
+    const latestDate = parseYmd(latest.date);
+    const overallChangeKg = toOneDecimal(latest.weightKg - first.weightKg);
+
+    const weekStartDate = addDays(latestDate, -7);
+    const weekBase = pickReferenceRow(weighIns, weekStartDate);
+    const weeklyRawDelta =
+      weekBase && weekBase.date !== latest.date ? latest.weightKg - weekBase.weightKg : null;
+
+    const planStartDate = plan ? parseYmd(normalizeYmd(plan.startDate)) : parseYmd(first.date);
+    const planEndDate = plan ? parseYmd(normalizeYmd(plan.endDate)) : null;
+    const startRow = pickReferenceRow(weighIns, planStartDate) ?? first;
+
+    let mode: ProgressMode =
+      plan?.phase === "bulk" ? "bulk" : plan?.phase === "cut" ? "cut" : overallChangeKg <= 0 ? "cut" : "bulk";
+    let direction: GoalDirection = mode === "bulk" ? "gain" : "loss";
+    let remainingKg: number | null = null;
+    let progressPercent: number | null = null;
+    let weeklyRequiredKg: number | null = null;
+
+    if (plan?.goalType === "target_weight") {
+      const targetDirection: GoalDirection = plan.goalValue <= startRow.weightKg ? "loss" : "gain";
+      if (plan.phase === "cut") {
+        direction = "loss";
+      } else if (plan.phase === "bulk") {
+        direction = "gain";
+      } else {
+        direction = targetDirection;
+      }
+      mode = direction === "loss" ? "cut" : "bulk";
+      const totalGoalChange = Math.abs(startRow.weightKg - plan.goalValue);
+      const remainingRaw =
+        direction === "loss" ? latest.weightKg - plan.goalValue : plan.goalValue - latest.weightKg;
+      remainingKg = toOneDecimal(Math.max(0, remainingRaw));
+
+      if (totalGoalChange <= 0.0001) {
+        progressPercent = 100;
+      } else {
+        const achieved = Math.max(0, totalGoalChange - Math.max(0, remainingRaw));
+        progressPercent = toPercent((achieved / totalGoalChange) * 100);
+      }
+
+      if (planEndDate) {
+        if (remainingKg <= 0) {
+          weeklyRequiredKg = 0;
+        } else {
+          const daysLeft = Math.max(0, Math.ceil(dateDiffInDays(latestDate, planEndDate)));
+          weeklyRequiredKg =
+            daysLeft > 0
+              ? toOneDecimal(remainingKg / Math.max(daysLeft / 7, 1 / 7))
+              : toOneDecimal(remainingKg);
+        }
+      }
+    } else if (plan?.goalType === "weekly_rate") {
+      direction = plan.phase === "bulk" ? "gain" : "loss";
+      mode = direction === "loss" ? "cut" : "bulk";
+      weeklyRequiredKg = toOneDecimal((startRow.weightKg * plan.goalValue) / 100);
+    }
+
+    const weeklyActualKg =
+      weeklyRawDelta === null ? null : toOneDecimal(signedProgress(weeklyRawDelta, direction));
+
+    const weeklyAchievementPercent =
+      weeklyRequiredKg !== null && weeklyRequiredKg > 0 && weeklyActualKg !== null
+        ? toPercent((weeklyActualKg / weeklyRequiredKg) * 100)
+        : null;
+
+    const elapsedDays = Math.max(1, dateDiffInDays(parseYmd(startRow.date), latestDate));
+    const periodProgress = signedProgress(latest.weightKg - startRow.weightKg, direction);
+    const pacePerWeekKg = toOneDecimal(periodProgress / (elapsedDays / 7));
+    const paceVsRequiredPercent =
+      weeklyRequiredKg !== null && weeklyRequiredKg > 0
+        ? toPercent((pacePerWeekKg / weeklyRequiredKg) * 100)
+        : null;
+
+    return {
+      rangeStartDate: first.date,
+      rangeEndDate: latest.date,
+      mode,
+      overallChangeKg,
+      direction,
+      remainingKg,
+      progressPercent,
+      weeklyRequiredKg,
+      weeklyActualKg,
+      weeklyAchievementPercent,
+      pacePerWeekKg,
+      paceVsRequiredPercent
+    };
+  }, [weighIns, plan]);
+
+  const modeText = progress.mode === "bulk" ? "벌크 모드" : "다이어트 모드";
+  const directionLabel = progress.mode === "bulk" ? "증량" : "감량";
+  const remainingLabel = progress.mode === "bulk" ? "목표까지 남은 증량" : "목표까지 남은 감량";
+  const accentTextClass = progress.mode === "bulk" ? "text-amber-700" : "text-emerald-700";
+  const modeBadgeClass =
+    progress.mode === "bulk" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800";
 
   useEffect(() => {
     setSelected7d(null);
@@ -575,19 +814,55 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
       </section>
 
       <section className="panel p-5">
-        <h3 className="mb-1 text-[14px] font-bold text-slate-500">이번 주 요약</h3>
-        <div className="mt-3 grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="mb-1 text-[14px] font-bold text-slate-500">전체 진행 상황</h3>
+            <p className="small mt-1 text-slate-500">
+              전체 기록 기준 {progress.rangeStartDate} ~ {progress.rangeEndDate}
+            </p>
+            <span
+              className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold tracking-tight ${modeBadgeClass}`}
+            >
+              {modeText}
+            </span>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+            <p className="mb-2 text-center text-xs font-semibold text-slate-500">목표 진행률</p>
+            <ProgressRing percent={progress.progressPercent} mode={progress.mode} />
+          </div>
+        </div>
+        <div className="mt-3 grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm">
-            <p className="mb-1 text-xs text-slate-500">최근 7일 변화</p>
-            <p className="text-xl font-black text-blue-900">
-              {delta ?? "-"} <span className="text-sm font-medium">kg</span>
+            <p className="mb-1 text-xs text-slate-500">전체 기간 변화</p>
+            <p className={`text-xl font-black ${accentTextClass}`}>
+              {toSignedKg(progress.overallChangeKg)} <span className="text-sm font-medium">kg</span>
             </p>
           </div>
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm">
-            <p className="mb-1 text-xs text-slate-500">주간 목표 달성률</p>
-            <p className="text-xl font-black text-blue-900">
-              {weeklyRate ?? "-"} <span className="text-sm font-medium">%</span>
+            <p className="mb-1 text-xs text-slate-500">{remainingLabel}</p>
+            <p className={`text-xl font-black ${accentTextClass}`}>
+              {toKg(progress.remainingKg)} <span className="text-sm font-medium">kg</span>
             </p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm">
+            <p className="mb-1 text-xs text-slate-500">이번 주 목표 {directionLabel}</p>
+            <p className={`text-xl font-black ${accentTextClass}`}>
+              {toKg(progress.weeklyRequiredKg)} <span className="text-sm font-medium">kg</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm">
+            <p className="mb-1 text-xs text-slate-500">이번 주 실제 {directionLabel}</p>
+            <p className={`text-xl font-black ${accentTextClass}`}>
+              {toSignedKg(progress.weeklyActualKg)} <span className="text-sm font-medium">kg</span>
+            </p>
+            <p className="small mt-1 text-slate-500">주간 목표 대비 {toPercentText(progress.weeklyAchievementPercent)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm">
+            <p className="mb-1 text-xs text-slate-500">현재 평균 {directionLabel} 속도</p>
+            <p className={`text-xl font-black ${accentTextClass}`}>
+              {toKg(progress.pacePerWeekKg)} <span className="text-sm font-medium">kg/주</span>
+            </p>
+            <p className="small mt-1 text-slate-500">필요 속도 대비 {toPercentText(progress.paceVsRequiredPercent)}</p>
           </div>
         </div>
       </section>

@@ -14,8 +14,15 @@ export default async function WeightsPage() {
           initialData={{
             weighIns: dashboard.weighIns,
             movingAverages: dashboard.movingAverages,
-            delta7dAvgKg: dashboard.delta7dAvgKg,
-            weeklyRatePercent: dashboard.weeklyRatePercent
+            plan: dashboard.plan
+              ? {
+                  phase: dashboard.plan.phase,
+                  goalType: dashboard.plan.goalType,
+                  goalValue: dashboard.plan.goalValue,
+                  startDate: dashboard.plan.startDate.toISOString().slice(0, 10),
+                  endDate: dashboard.plan.endDate.toISOString().slice(0, 10)
+                }
+              : null
           }}
         />
         <WeightsManager />

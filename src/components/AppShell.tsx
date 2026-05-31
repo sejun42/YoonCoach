@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/", label: "오늘" },
   { href: "/weights", label: "체중" },
+  { href: "/body-parts", label: "부위" },
   { href: "/coaching", label: "코칭" },
   { href: "/settings", label: "설정" }
 ];
@@ -21,14 +22,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main>{children}</main>
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto flex max-w-md items-center justify-between px-6 py-2.5 sm:px-8">
+        <div className="mx-auto flex max-w-md items-center justify-between px-3 py-2.5 sm:px-5">
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-[68px] items-center justify-center rounded-xl px-3 py-2.5 text-[14px] font-bold transition-all ${active ? "bg-blue-50 text-blue-800" : "text-slate-400 hover:text-slate-800"
+                className={`flex min-w-[56px] items-center justify-center rounded-xl px-2 py-2.5 text-[14px] font-bold transition-all ${active ? "bg-blue-50 text-blue-800" : "text-slate-400 hover:text-slate-800"
                   }`}
               >
                 {item.label}

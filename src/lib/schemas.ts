@@ -46,6 +46,11 @@ export const checkinSchema = z.object({
   intake_fat_g: z.number().int().nonnegative().optional().nullable()
 });
 
+export const workoutPartsSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  body_parts: z.array(z.enum(["chest", "shoulders", "back", "legs", "arms"])).max(5)
+});
+
 export const pushSubscribeSchema = z.object({
   endpoint: z.string().url(),
   keys: z.object({

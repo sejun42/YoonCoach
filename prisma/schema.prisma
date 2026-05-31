@@ -44,6 +44,14 @@ enum CoachingReason {
   calibration_end
 }
 
+enum BodyPart {
+  chest
+  shoulders
+  back
+  legs
+  arms
+}
+
 model User {
   id                String             @id @default(cuid())
   email             String             @unique
@@ -53,6 +61,7 @@ model User {
   plans             Plan[]
   weighIns          WeighIn[]
   dailyCheckins     DailyCheckin[]
+  workoutBodyParts  WorkoutBodyPartLog[]
   coachingLogs      CoachingLog[]
   pushSubscriptions PushSubscription[]
   settings          UserSetting?
@@ -119,6 +128,20 @@ model DailyCheckin {
 
   @@unique([userId, date])
   @@index([userId, date])
+}
+
+model WorkoutBodyPartLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  bodyPart  BodyPart
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, bodyPart])
+  @@index([userId, date])
+  @@index([userId, bodyPart, date])
 }
 
 model CoachingLog {

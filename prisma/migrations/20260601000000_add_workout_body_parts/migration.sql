@@ -1,8 +1,13 @@
 -- CreateEnum
-CREATE TYPE "BodyPart" AS ENUM ('chest', 'shoulders', 'back', 'legs', 'arms');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BodyPart') THEN
+        CREATE TYPE "BodyPart" AS ENUM ('chest', 'shoulders', 'back', 'legs', 'arms');
+    END IF;
+END $$;
 
 -- CreateTable
-CREATE TABLE "WorkoutBodyPartLog" (
+CREATE TABLE IF NOT EXISTS "WorkoutBodyPartLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
@@ -14,13 +19,25 @@ CREATE TABLE "WorkoutBodyPartLog" (
 );
 
 -- CreateIndex
-CREATE INDEX "WorkoutBodyPartLog_userId_date_idx" ON "WorkoutBodyPartLog"("userId", "date");
+CREATE INDEX IF NOT EXISTS "WorkoutBodyPartLog_userId_date_idx" ON "WorkoutBodyPartLog"("userId", "date");
 
 -- CreateIndex
-CREATE INDEX "WorkoutBodyPartLog_userId_bodyPart_date_idx" ON "WorkoutBodyPartLog"("userId", "bodyPart", "date");
+CREATE INDEX IF NOT EXISTS "WorkoutBodyPartLog_userId_bodyPart_date_idx" ON "WorkoutBodyPartLog"("userId", "bodyPart", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WorkoutBodyPartLog_userId_date_bodyPart_key" ON "WorkoutBodyPartLog"("userId", "date", "bodyPart");
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkoutBodyPartLog_userId_date_bodyPart_key" ON "WorkoutBodyPartLog"("userId", "date", "bodyPart");
 
 -- AddForeignKey
-ALTER TABLE "WorkoutBodyPartLog" ADD CONSTRAINT "WorkoutBodyPartLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'WorkoutBodyPartLog_userId_fkey'
+    ) THEN
+        ALTER TABLE "WorkoutBodyPartLog"
+        ADD CONSTRAINT "WorkoutBodyPartLog_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;

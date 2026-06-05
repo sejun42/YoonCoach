@@ -6,6 +6,7 @@ type Row = { date: string; weightKg: number };
 type MA = { date: string; avg: number };
 type PointKind = "record" | "trend";
 type SelectedPoint = { kind: PointKind; date: string; value: number };
+type WeekAverageBucket = { date: string; total: number; count: number };
 
 type PlotPoint = {
   date: string;
@@ -85,6 +86,13 @@ function parseYmd(ymd: string) {
   return new Date(year, month - 1, day);
 }
 
+function formatYmd(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function normalizeYmd(value: string) {
   return value.slice(0, 10);
 }
@@ -132,15 +140,44 @@ function addDays(date: Date, amount: number) {
   return next;
 }
 
+function startOfWeek(date: Date) {
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  weekStart.setDate(weekStart.getDate() + mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
+function firstDateOfCalendarMonthWeek(date: Date) {
+  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+  const weekStart = startOfWeek(date);
+  return weekStart < monthStart ? monthStart : weekStart;
+}
+
+function getWeekOfMonth(date: Date) {
+  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstWeekStart = startOfWeek(monthStart);
+  const currentWeekStart = startOfWeek(date);
+  return Math.floor(dateDiffInDays(firstWeekStart, currentWeekStart) / 7) + 1;
+}
+
+function formatMonthWeekLabel(ymd: string) {
+  const date = parseYmd(ymd);
+  const month = date.getMonth() + 1;
+  const week = getWeekOfMonth(date);
+  return `${month}월 ${week === 1 ? "첫" : week}주차`;
+}
+
+function formatMonthWeekPointLabel(ymd: string) {
+  const year = parseYmd(ymd).getFullYear();
+  return `${year}년 ${formatMonthWeekLabel(ymd)}`;
+}
+
 function formatDateLabel(ymd: string) {
   const [year, month, day] = ymd.split("-").map(Number);
   const shortYear = String(year).slice(2);
   return `${shortYear}.${String(month).padStart(2, "0")}.${String(day).padStart(2, "0")}`;
-}
-
-function formatDateLabelMd(ymd: string) {
-  const [, month, day] = ymd.split("-").map(Number);
-  return `${month}/${day}`;
 }
 
 function formatDateLabelYm(ymd: string) {
@@ -330,6 +367,34 @@ function buildChartModel(
   };
 }
 
+function buildWeeklyAverageData(rows: Row[], plan: PlanSummary | null): Row[] {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const dietStartDate = plan ? parseYmd(normalizeYmd(plan.startDate)) : parseYmd(rows[0].date);
+  const buckets = new Map<string, WeekAverageBucket>();
+
+  for (const row of rows) {
+    const rowDate = parseYmd(row.date);
+    if (rowDate < dietStartDate) {
+      continue;
+    }
+
+    const bucketDate = firstDateOfCalendarMonthWeek(rowDate);
+    const bucketKey = formatYmd(bucketDate);
+    const bucket = buckets.get(bucketKey) ?? { date: bucketKey, total: 0, count: 0 };
+    bucket.total += row.weightKg;
+    bucket.count += 1;
+    buckets.set(bucketKey, bucket);
+  }
+
+  return Array.from(buckets.values()).map((bucket) => ({
+    date: bucket.date,
+    weightKg: toOneDecimal(bucket.total / bucket.count)
+  }));
+}
+
 function pickReferenceRow(rows: Row[], refDate: Date) {
   const beforeOrEqual = [...rows].reverse().find((row) => parseYmd(row.date) <= refDate);
   if (beforeOrEqual) {
@@ -398,6 +463,12 @@ function WeightTrendChart({
   showTrend = true,
   showRecordPoints = true,
   xTickFormatter = formatDateLabel,
+  selectedDateFormatter = formatPointDate,
+  recordPointLabel = "일자별 기록",
+  trendPointLabel = "7일 이동평균",
+  recordLegendLabel = "일자별 기록",
+  trendLegendLabel = "7일 이동평균(추세)",
+  selectionHint = "그래프 점을 누르면 날짜와 체중이 표시됩니다.",
   readabilityMode = "normal"
 }: {
   title: string;
@@ -410,6 +481,12 @@ function WeightTrendChart({
   showTrend?: boolean;
   showRecordPoints?: boolean;
   xTickFormatter?: (ymd: string) => string;
+  selectedDateFormatter?: (ymd: string) => string;
+  recordPointLabel?: string;
+  trendPointLabel?: string;
+  recordLegendLabel?: string;
+  trendLegendLabel?: string;
+  selectionHint?: string;
   readabilityMode?: "normal" | "high";
 }) {
   const chart = useMemo(
@@ -551,23 +628,23 @@ function WeightTrendChart({
       <div className="mt-3 rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-sm text-cyan-900">
         {selected ? (
           <p>
-            {formatPointDate(selected.date)} · {formatWeight(selected.value)} ·{" "}
-            {selected.kind === "record" ? "일자별 기록" : "7일 이동평균"}
+            {selectedDateFormatter(selected.date)} · {formatWeight(selected.value)} ·{" "}
+            {selected.kind === "record" ? recordPointLabel : trendPointLabel}
           </p>
         ) : (
-          <p>그래프 점을 누르면 날짜와 체중이 표시됩니다.</p>
+          <p>{selectionHint}</p>
         )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-5 text-[12px] font-semibold">
         <span className="flex items-center gap-1.5 text-cyan-800">
           <span className="block h-2.5 w-2.5 rounded-full bg-cyan-600" />
-          일자별 기록
+          {recordLegendLabel}
         </span>
         {showTrend && (
           <span className="flex items-center gap-1.5 text-slate-600">
             <span className="block h-2.5 w-2.5 rounded-full bg-slate-400" />
-            7일 이동평균(추세)
+            {trendLegendLabel}
           </span>
         )}
       </div>
@@ -581,7 +658,7 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
   const [weighIns, setWeighIns] = useState<Row[]>(initialData?.weighIns ?? []);
   const [ma, setMa] = useState<MA[]>(initialData?.movingAverages ?? []);
   const [plan, setPlan] = useState<PlanSummary | null>(initialData?.plan ?? null);
-  const [selected7d, setSelected7d] = useState<SelectedPoint | null>(null);
+  const [selectedWeekly, setSelectedWeekly] = useState<SelectedPoint | null>(null);
   const [selectedAll, setSelectedAll] = useState<SelectedPoint | null>(null);
 
   useEffect(() => {
@@ -628,18 +705,7 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
     };
   }, [initialData]);
 
-  const sevenDayData = useMemo(() => {
-    if (weighIns.length === 0) {
-      return { rows: [], trendRows: [] };
-    }
-
-    const latestDate = parseYmd(weighIns[weighIns.length - 1].date);
-    const fromDate = addDays(latestDate, -6);
-    const rows = weighIns.filter((row) => parseYmd(row.date) >= fromDate);
-    const trendRows = ma.filter((row) => parseYmd(row.date) >= fromDate);
-
-    return { rows, trendRows };
-  }, [weighIns, ma]);
+  const weeklyAverageRows = useMemo(() => buildWeeklyAverageData(weighIns, plan), [weighIns, plan]);
 
   const progress = useMemo<DietProgress>(() => {
     const first = weighIns[0];
@@ -760,9 +826,9 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
     progress.mode === "bulk" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800";
 
   useEffect(() => {
-    setSelected7d(null);
+    setSelectedWeekly(null);
     setSelectedAll(null);
-  }, [weighIns, ma]);
+  }, [weighIns, ma, plan]);
 
   if (loading) {
     return <div className="panel p-4 text-slate-500 font-medium">데이터 불러오는 중...</div>;
@@ -784,16 +850,20 @@ export default function GraphView({ initialData }: { initialData?: GraphViewInit
         <h2 className="mb-4 text-lg font-black tracking-tight text-slate-800">체중 변화 추이</h2>
         <div className="space-y-4">
           <WeightTrendChart
-            title="최근 7일 그래프"
-            subtitle="최신 기록일 기준 최근 7일 체중 변화와 7일 이동평균"
-            rows={sevenDayData.rows}
-            trendRows={sevenDayData.trendRows}
-            selected={selected7d}
-            onSelect={setSelected7d}
-            maxXTicks={7}
-            showTrend
+            title="주차별 평균 체중"
+            subtitle="다이어트 시작일 이후 기록된 체중을 캘린더 주차별로 평균낸 그래프"
+            rows={weeklyAverageRows}
+            trendRows={[]}
+            selected={selectedWeekly}
+            onSelect={setSelectedWeekly}
+            maxXTicks={5}
+            showTrend={false}
             showRecordPoints
-            xTickFormatter={formatDateLabelMd}
+            xTickFormatter={formatMonthWeekLabel}
+            selectedDateFormatter={formatMonthWeekPointLabel}
+            recordPointLabel="주차 평균"
+            recordLegendLabel="주차 평균"
+            selectionHint="그래프 점을 누르면 주차와 평균 체중이 표시됩니다."
             readabilityMode="high"
           />
 

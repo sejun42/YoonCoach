@@ -36,6 +36,12 @@ function daysBetween(from: string, to: string) {
   return Math.max(0, Math.floor(diff / 86400000));
 }
 
+function daysAgoYmd(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return toYmd(d);
+}
+
 export default function BodyPartCalendar() {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => toYmd(new Date()));
@@ -86,6 +92,9 @@ export default function BodyPartCalendar() {
     setDraftParts(logsByDate.get(selectedDate) || []);
   }, [logsByDate, selectedDate]);
 
+  const selectedStoredParts = logsByDate.get(selectedDate) || [];
+  const selectedHasRecord = selectedStoredParts.length > 0;
+
   const monthlyCounts = useMemo(() => {
     const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
     return bodyParts.map((part) => ({
@@ -134,9 +143,16 @@ export default function BodyPartCalendar() {
   }
 
   function goToday() {
-    const now = new Date();
-    setCurrentDate(now);
-    setSelectedDate(toYmd(now));
+    chooseDate(toYmd(new Date()));
+  }
+
+  function chooseDate(dateStr: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return;
+    }
+    setSelectedDate(dateStr);
+    setCurrentDate(parseYmd(dateStr));
+    setMessage(null);
   }
 
   function togglePart(part: BodyPartKey) {
@@ -155,8 +171,17 @@ export default function BodyPartCalendar() {
       if (!res.ok) {
         throw new Error("운동 부위 기록 저장에 실패했습니다.");
       }
-      await loadLogs();
-      setMessage("운동 부위 기록을 저장했습니다.");
+      const json = await res.json();
+      const savedParts = (json.body_parts || draftParts) as BodyPartKey[];
+      setLogs((prev) => [
+        ...prev.filter((log) => log.date !== selectedDate),
+        ...savedParts.map((bodyPart) => ({
+          id: `${selectedDate}-${bodyPart}`,
+          date: selectedDate,
+          body_part: bodyPart
+        }))
+      ]);
+      setMessage(selectedHasRecord ? "운동 부위 기록을 수정했습니다." : "운동 부위 기록을 저장했습니다.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.");
     } finally {
@@ -229,7 +254,7 @@ export default function BodyPartCalendar() {
                 className={`flex min-h-[68px] flex-col items-center justify-start rounded-lg border px-1 py-2 transition ${
                   isSelected ? "border-slate-900 bg-slate-50" : "border-transparent bg-white hover:border-slate-200"
                 }`}
-                onClick={() => setSelectedDate(dateStr)}
+                onClick={() => chooseDate(dateStr)}
                 type="button"
               >
                 <span
@@ -257,13 +282,30 @@ export default function BodyPartCalendar() {
       </section>
 
       <section className="panel p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h3 className="font-bold">{selectedDate}</h3>
-            <p className="small">운동한 부위를 모두 선택하세요.</p>
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex-1">
+            <label className="label">수정할 날짜</label>
+            <input className="field" type="date" value={selectedDate} onChange={(e) => chooseDate(e.target.value)} />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={() => chooseDate(daysAgoYmd(2))} type="button">
+                엊그제
+              </button>
+              <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={() => chooseDate(daysAgoYmd(1))} type="button">
+                어제
+              </button>
+              <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={goToday} type="button">
+                오늘
+              </button>
+              {selectedHasRecord && (
+                <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={() => setDraftParts([])} type="button">
+                  선택 모두 해제
+                </button>
+              )}
+            </div>
+            <p className="small mt-2">운동한 부위를 다시 선택한 뒤 저장하면 기존 기록이 수정됩니다.</p>
           </div>
           <button className="btn btn-primary shrink-0" disabled={saving} onClick={saveSelectedDate} type="button">
-            {saving ? "저장 중" : "저장"}
+            {saving ? "저장 중" : selectedHasRecord ? "수정 저장" : "저장"}
           </button>
         </div>
 

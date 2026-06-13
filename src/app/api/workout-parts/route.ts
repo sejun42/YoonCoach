@@ -65,20 +65,36 @@ export async function PUT(req: NextRequest) {
   const uniqueBodyParts = Array.from(new Set(parsed.data.body_parts)) as BodyPart[];
 
   const logs = await db.$transaction(async (tx) => {
-    await tx.workoutBodyPartLog.deleteMany({
+    const existingLogs = await tx.workoutBodyPartLog.findMany({
       where: {
         userId: auth.userId,
         date
       }
     });
 
-    if (uniqueBodyParts.length > 0) {
+    const nextParts = new Set(uniqueBodyParts);
+    const existingParts = new Set(existingLogs.map((log) => log.bodyPart));
+    const partsToDelete = existingLogs.filter((log) => !nextParts.has(log.bodyPart)).map((log) => log.bodyPart);
+    const partsToCreate = uniqueBodyParts.filter((bodyPart) => !existingParts.has(bodyPart));
+
+    if (partsToDelete.length > 0) {
+      await tx.workoutBodyPartLog.deleteMany({
+        where: {
+          userId: auth.userId,
+          date,
+          bodyPart: { in: partsToDelete }
+        }
+      });
+    }
+
+    if (partsToCreate.length > 0) {
       await tx.workoutBodyPartLog.createMany({
-        data: uniqueBodyParts.map((bodyPart) => ({
+        data: partsToCreate.map((bodyPart) => ({
           userId: auth.userId,
           date,
           bodyPart
-        }))
+        })),
+        skipDuplicates: true
       });
     }
 

@@ -49,6 +49,8 @@ enum BodyPart {
   shoulders
   back
   legs
+  front_legs
+  back_legs
   arms
 }
 

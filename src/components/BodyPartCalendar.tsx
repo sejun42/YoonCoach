@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type BodyPartKey = "chest" | "shoulders" | "back" | "legs" | "arms";
+type BodyPartKey = "chest" | "shoulders" | "back" | "legs" | "front_legs" | "back_legs" | "arms";
 
 type WorkoutPartLog = {
   id: string;
@@ -10,13 +10,20 @@ type WorkoutPartLog = {
   body_part: BodyPartKey;
 };
 
-const bodyParts: { key: BodyPartKey; label: string; color: string; soft: string; text: string }[] = [
+const currentBodyParts: { key: BodyPartKey; label: string; color: string; soft: string; text: string }[] = [
   { key: "chest", label: "가슴", color: "bg-rose-500", soft: "bg-rose-50 border-rose-200", text: "text-rose-800" },
   { key: "shoulders", label: "어깨", color: "bg-violet-500", soft: "bg-violet-50 border-violet-200", text: "text-violet-800" },
   { key: "back", label: "등", color: "bg-sky-500", soft: "bg-sky-50 border-sky-200", text: "text-sky-800" },
-  { key: "legs", label: "하체", color: "bg-emerald-500", soft: "bg-emerald-50 border-emerald-200", text: "text-emerald-800" },
+  { key: "front_legs", label: "전면하체", color: "bg-lime-500", soft: "bg-lime-50 border-lime-200", text: "text-lime-800" },
+  { key: "back_legs", label: "후면하체", color: "bg-emerald-600", soft: "bg-emerald-50 border-emerald-200", text: "text-emerald-800" },
   { key: "arms", label: "팔", color: "bg-amber-500", soft: "bg-amber-50 border-amber-200", text: "text-amber-800" }
 ];
+
+const legacyBodyParts: { key: BodyPartKey; label: string; color: string; soft: string; text: string }[] = [
+  { key: "legs", label: "하체", color: "bg-slate-400", soft: "bg-slate-50 border-slate-200", text: "text-slate-700" }
+];
+
+const bodyParts = [...currentBodyParts, ...legacyBodyParts];
 
 const weekLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -97,14 +104,14 @@ export default function BodyPartCalendar() {
 
   const monthlyCounts = useMemo(() => {
     const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-    return bodyParts.map((part) => ({
+    return currentBodyParts.map((part) => ({
       ...part,
       count: logs.filter((log) => log.date.startsWith(monthPrefix) && log.body_part === part.key).length
     }));
   }, [logs, month, year]);
 
   const recommendation = useMemo(() => {
-    const stats = bodyParts.map((part, index) => {
+    const stats = currentBodyParts.map((part, index) => {
       const dates = logs.filter((log) => log.body_part === part.key).map((log) => log.date).sort();
       const lastDate = dates.at(-1) || null;
       return {
@@ -156,7 +163,10 @@ export default function BodyPartCalendar() {
   }
 
   function togglePart(part: BodyPartKey) {
-    setDraftParts((prev) => (prev.includes(part) ? prev.filter((item) => item !== part) : [...prev, part]));
+    setDraftParts((prev) => {
+      const base = part === "front_legs" || part === "back_legs" ? prev.filter((item) => item !== "legs") : prev;
+      return base.includes(part) ? base.filter((item) => item !== part) : [...base, part];
+    });
   }
 
   async function saveSelectedDate() {
@@ -222,7 +232,7 @@ export default function BodyPartCalendar() {
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-5 gap-2">
+        <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
           {monthlyCounts.map((part) => (
             <div key={part.key} className={`rounded-lg border px-2 py-2 text-center ${part.soft}`}>
               <div className={`mx-auto mb-1 h-2 w-8 rounded-full ${part.color}`} />
@@ -309,8 +319,14 @@ export default function BodyPartCalendar() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {bodyParts.map((part) => {
+        {draftParts.includes("legs") && (
+          <p className="small mb-3">
+            기존 하체 기록이 남아 있습니다. 전면하체나 후면하체를 선택하면 기존 하체 기록은 자동으로 새 분할 기록으로 전환됩니다.
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+          {currentBodyParts.map((part) => {
             const active = draftParts.includes(part.key);
             return (
               <button

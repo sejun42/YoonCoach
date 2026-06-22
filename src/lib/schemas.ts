@@ -48,7 +48,7 @@ export const checkinSchema = z.object({
 
 export const workoutPartsSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  body_parts: z.array(z.enum(["chest", "shoulders", "back", "legs", "arms"])).max(5)
+  body_parts: z.array(z.enum(["chest", "shoulders", "back", "legs", "front_legs", "back_legs", "arms"])).max(7)
 });
 
 export const pushSubscribeSchema = z.object({

@@ -7,7 +7,7 @@
     "build": "prisma generate && npm run db:upgrade && next build",
     "build:check": "prisma generate && next build",
     "test:e2e": "playwright test",
-    "db:upgrade": "prisma db execute --file prisma/migrations/20260908000000_split_arm_parts/migration.sql",
+    "db:upgrade": "prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20260908000000_split_arm_parts/migration.sql",
     "start": "next start",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",

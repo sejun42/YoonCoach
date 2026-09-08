@@ -65,7 +65,7 @@ The browser suite starts an isolated, in-memory PGlite PostgreSQL server on
 database and session credentials with test-only values. Neither .env data nor
 the live Supabase database is used for test records.
 
-Coverage includes repeated additive migration, legacy records, user scoping,
+Coverage includes repeating the actual production upgrade command, legacy records, user scoping,
 past-date multi-selection and editing, failed-save draft retention, native
 back/forward, tab request counts, shared weight/goal cache, CSV exports, date
 validation, and layouts at 320, 390, 768, and 1280 pixels.

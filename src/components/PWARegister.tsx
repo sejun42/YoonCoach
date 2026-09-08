@@ -16,7 +16,7 @@ export default function PWARegister() {
       return;
     }
 
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {
       // Ignore failed registration in unsupported environments.
     });
   }, []);

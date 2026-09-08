@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { bodyPartKeys } from "./body-parts";
+
+export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}, "Invalid calendar date");
 
 export const signUpSchema = z.object({
   email: z.string().email(),
@@ -47,8 +53,8 @@ export const checkinSchema = z.object({
 });
 
 export const workoutPartsSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  body_parts: z.array(z.enum(["chest", "shoulders", "back", "legs", "front_legs", "back_legs", "arms"])).max(7)
+  date: calendarDateSchema,
+  body_parts: z.array(z.enum(bodyPartKeys)).max(bodyPartKeys.length)
 });
 
 export const pushSubscribeSchema = z.object({

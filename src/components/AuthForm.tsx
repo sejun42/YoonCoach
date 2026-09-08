@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -9,85 +11,37 @@ export default function AuthForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
 
-  async function submit() {
-    setLoading(true);
-    setMessage(null);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (loading) return;
+    setLoading(true); setMessage("");
     try {
-      const path = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
-      const res = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+      const response = await fetch(mode === "login" ? "/api/auth/login" : "/api/auth/signup", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password })
       });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "인증 실패");
-      }
-
-      const meRes = await fetch("/api/me", { cache: "no-store" });
-      const meJson = await meRes.json();
-      if (meJson.onboarding_completed) {
-        router.replace("/");
-      } else {
-        router.replace("/onboarding");
-      }
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류가 발생했어요.");
-    } finally {
-      setLoading(false);
-    }
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || "로그인 정보를 확인해 주세요.");
+      const me = await fetch("/api/me", { cache: "no-store" });
+      if (!me.ok) throw new Error("계정 정보를 불러오지 못했습니다.");
+      const account = await me.json();
+      router.replace(account.onboarding_completed ? "/weights" : "/onboarding");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "연결 상태를 확인해 주세요."); }
+    finally { setLoading(false); }
   }
-
-  return (
-    <section className="mx-auto mt-10 w-full max-w-md panel p-5">
-      <h2 className="text-xl font-black tracking-tight">시작하기</h2>
-      <p className="small mt-1">이메일과 비밀번호로 바로 시작할 수 있어요.</p>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          className={`btn flex-1 ${mode === "login" ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setMode("login")}
-        >
-          로그인
-        </button>
-        <button
-          type="button"
-          className={`btn flex-1 ${mode === "signup" ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setMode("signup")}
-        >
-          회원가입
-        </button>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <div>
-          <label className="label">이메일</label>
-          <input
-            className="field"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </div>
-        <div>
-          <label className="label">비밀번호 (8자 이상)</label>
-          <input
-            className="field"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <button className="btn btn-primary w-full" disabled={loading} onClick={submit}>
-          {loading ? "처리 중..." : mode === "login" ? "로그인" : "회원가입"}
-        </button>
-      </div>
-
-      {message && <p className="small mt-3 text-red-600">{message}</p>}
-    </section>
-  );
+  return <section className="auth-wrap">
+    <div className="brand"><Image src="/icon.svg" alt="" width={34} height={34} priority /><span>YoonCoach</span></div>
+    <h1>{mode === "login" ? "나의 기록으로 돌아가기" : "새로운 기록 시작하기"}</h1>
+    <div className="segmented" role="group" aria-label="계정 접속">
+      <button type="button" aria-pressed={mode === "login"} disabled={loading} onClick={() => { setMode("login"); setMessage(""); }}>로그인</button>
+      <button type="button" aria-pressed={mode === "signup"} disabled={loading} onClick={() => { setMode("signup"); setMessage(""); }}>회원가입</button>
+    </div>
+    <form onSubmit={submit}>
+      <label>이메일<input className="field" type="email" autoComplete="email" required value={email} disabled={loading} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
+      <label>비밀번호<input className="field" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} required value={password} disabled={loading} onChange={(event) => setPassword(event.target.value)} /></label>
+      <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? "확인 중" : mode === "login" ? "로그인" : "계정 만들기"}<ArrowRight size={18} /></button>
+      {message && <p className="form-message error-text" role="alert">{message}</p>}
+    </form>
+  </section>;
 }

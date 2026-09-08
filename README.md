@@ -9,6 +9,13 @@
 
 ---
 
+## September 2026 Update
+
+The main app now focuses on three tabs: weight, workout body parts, and settings.
+Existing diet and coaching history remains accessible from Settings. See
+[the tracker refresh notes](docs/2026-09-tracker-refresh.md) for the additive
+database upgrade, performance changes, and isolated browser tests.
+
 ## Overview
 
 YoonCoach is a full-stack PWA for nutrition coaching and body-weight management.

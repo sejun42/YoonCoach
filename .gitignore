@@ -7,6 +7,8 @@
 
 # production
 /build
+/test-results
+/playwright-report
 
 # env
 .env
@@ -24,6 +26,7 @@ pnpm-debug.log*
 # misc
 .DS_Store
 *.pem
+/.codex-remote-attachments
 
 # prisma
 /prisma/dev.db

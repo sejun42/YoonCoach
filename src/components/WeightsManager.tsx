@@ -1,273 +1,127 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
-import { useTransientToast } from "@/lib/useTransientToast";
+import { useMemo, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
+import useSWR from "swr";
+import { Check, ChevronDown, Pencil, Plus, RotateCw, Trash2, X } from "lucide-react";
+import { requestJson, shiftDate, useToday, type WeighIn, type WeightResponse, type PlanResponse } from "@/lib/tracker-client";
 
-type WeighIn = {
-  id: string;
-  date: string;
-  weight_kg: number;
-};
-
-function todayYmd() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function daysAgoYmd(days: number) {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
-}
+const GraphView = dynamic(() => import("./GraphView"), { ssr: false, loading: () => <div className="weight-chart loading-state">그래프 준비 중</div> });
 
 export default function WeightsManager() {
-  const [from, setFrom] = useState(daysAgoYmd(60));
-  const [to, setTo] = useState(todayYmd());
-  const [rows, setRows] = useState<WeighIn[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editWeight, setEditWeight] = useState("");
-  const [newDate, setNewDate] = useState(todayYmd());
-  const [newWeight, setNewWeight] = useState("");
-  const { toastMessage, toastActive, showToast } = useTransientToast();
+  const today = useToday();
+  const { data, error, isLoading, isValidating, mutate } = useSWR<WeightResponse>("/api/weighins");
+  const { data: planData } = useSWR<PlanResponse>("/api/plan/current");
+  const [date, setDate] = useState<string | null>(null);
+  const [weight, setWeight] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [edit, setEdit] = useState<{ id: string; value: string } | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [limit, setLimit] = useState(15);
+  const rows = useMemo(() => [...(data?.weighIns ?? [])].sort((a, b) => a.date.localeCompare(b.date)), [data]);
+  const pastRows = rows.filter((row) => row.date <= today);
+  const latest = pastRows.at(-1);
+  const previous = pastRows.at(-2);
+  const change = latest && previous ? latest.weight_kg - previous.weight_kg : null;
+  const recent = pastRows.filter((row) => row.date >= shiftDate(today || "2000-01-01", -6));
+  const average = recent.length ? recent.reduce((sum, row) => sum + row.weight_kg, 0) / recent.length : null;
+  const visibleRows = rows.filter((row) => (!from || row.date >= from) && (!to || row.date <= to)).reverse();
+  const selectedDate = date ?? today;
+  const existing = rows.some((row) => row.date === selectedDate);
+  const plan = planData?.plan;
 
-  async function load() {
-    setLoading(true);
-    setMessage(null);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    try {
-      const res = await fetch(`/api/weighins?from=${from}&to=${to}`, {
-        cache: "no-store",
-        signal: controller.signal
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "불러오기 실패");
-      }
-      setRows(json.weighIns);
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
-        setMessage("요청 시간이 초과됐어요. 새로고침 후 다시 시도해 주세요.");
-      } else {
-        setMessage(e instanceof Error ? e.message : "오류가 발생했어요.");
-      }
-    } finally {
-      clearTimeout(timer);
-      setLoading(false);
-    }
+  function validWeight(value: string) {
+    const number = Number(value);
+    if (!value || !Number.isFinite(number) || number < 30 || number > 300) throw new Error("체중은 30~300kg 사이로 입력해 주세요.");
+    return number;
   }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (message) {
-      showToast(message);
-    }
-  }, [message, showToast]);
-
-  const handleButtonTapFeedback = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      const target = event.target as HTMLElement;
-      const button = target.closest("button");
-      if (!button || (button as HTMLButtonElement).disabled) {
-        return;
-      }
-
-      const manualFeedback = button.getAttribute("data-feedback");
-      if (manualFeedback) {
-        showToast(manualFeedback);
-        return;
-      }
-
-      const label = button.textContent?.trim() || "버튼";
-      showToast(`${label} 버튼을 눌렀어요.`);
-    },
-    [showToast]
-  );
-
-  const sortedRows = useMemo(() => [...rows].sort((a, b) => (a.date < b.date ? 1 : -1)), [rows]);
-
-  async function addOrUpdate() {
-    setMessage(null);
-    try {
-      const weightNum = Number(newWeight);
-      if (!newDate || !newWeight || Number.isNaN(weightNum)) {
-        throw new Error("날짜와 체중을 입력하세요.");
-      }
-      const res = await fetch("/api/weighins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: newDate, weight_kg: weightNum })
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "저장 실패");
-      }
-      setMessage("저장 완료");
-      setNewWeight("");
-      await load();
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류");
-    }
+  async function run(action: () => Promise<void>, success: string) {
+    if (busy) return;
+    setBusy(true); setMessage(""); setFailed(false);
+    try { await action(); setMessage(success); }
+    catch (e) { setFailed(true); setMessage(e instanceof Error ? e.message : "처리하지 못했습니다."); }
+    finally { setBusy(false); }
   }
-
-  async function saveEdit(id: string) {
-    setMessage(null);
-    try {
-      const weightNum = Number(editWeight);
-      if (!editWeight || Number.isNaN(weightNum)) {
-        throw new Error("수정 체중을 입력해 주세요.");
-      }
-      const res = await fetch(`/api/weighins/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weight_kg: weightNum })
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    await run(async () => {
+      const result = await requestJson<{ weighIn: WeighIn }>("/api/weighins", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: selectedDate, weight_kg: validWeight(weight) })
       });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "수정 실패");
-      }
-      setEditId(null);
-      setEditWeight("");
-      setMessage("수정 완료");
-      await load();
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류");
-    }
+      await mutate((current) => ({ ok: true, weighIns: [...(current?.weighIns ?? []).filter((row) => row.date !== result.weighIn.date), result.weighIn] }), { revalidate: false });
+      setWeight("");
+    }, existing ? "체중 기록을 수정했습니다." : "체중 기록을 저장했습니다.");
   }
-
-  async function remove(id: string) {
-    if (!confirm("삭제할까요?")) {
-      return;
-    }
-    setMessage(null);
-    try {
-      const res = await fetch(`/api/weighins/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "삭제 실패");
-      }
-      setMessage("삭제 완료");
-      await load();
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "오류");
-    }
+  async function saveEdit(row: WeighIn) {
+    if (!edit) return;
+    const input = edit.value;
+    await run(async () => {
+      const value = validWeight(input);
+      await requestJson("/api/weighins/" + row.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weight_kg: value }) });
+      await mutate((current) => ({ ok: true, weighIns: (current?.weighIns ?? []).map((item) => item.id === row.id ? { ...item, weight_kg: value } : item) }), { revalidate: false });
+      setEdit(null);
+    }, "체중 기록을 수정했습니다.");
+  }
+  async function remove(row: WeighIn) {
+    if (!window.confirm(row.date + " 체중 기록을 삭제할까요?")) return;
+    await run(async () => {
+      await requestJson("/api/weighins/" + row.id, { method: "DELETE" });
+      await mutate((current) => ({ ok: true, weighIns: (current?.weighIns ?? []).filter((item) => item.id !== row.id) }), { revalidate: false });
+    }, "체중 기록을 삭제했습니다.");
   }
 
   return (
-    <div className="space-y-4" onClickCapture={handleButtonTapFeedback}>
-      <section className="panel p-4">
-        <h2 className="text-lg font-bold">공복 체중 추가</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div>
-            <label className="label">날짜</label>
-            <input className="field" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">체중 (kg)</label>
-            <input
-              className="field"
-              type="number"
-              step="0.1"
-              value={newWeight}
-              onChange={(e) => setNewWeight(e.target.value)}
-            />
-          </div>
-          <div className="flex items-end">
-            <button className="btn btn-primary w-full" onClick={addOrUpdate} data-feedback="체중 저장 중입니다.">
-              저장
-            </button>
-          </div>
+    <div className="screen-content">
+      <div className="page-heading">
+        <div><p className="eyebrow">WEIGHT</p><h1>체중 기록</h1></div>
+        <button className="icon-button" type="button" aria-label="체중 새로고침" title="체중 새로고침" disabled={isValidating || busy} onClick={() => void mutate()}><RotateCw size={18} className={isValidating ? "spin" : ""} /></button>
+      </div>
+      {error && <div className="notice error" role="alert">체중 기록을 불러오지 못했습니다. <button onClick={() => void mutate()}>다시 시도</button></div>}
+      <div className="metric-row" aria-busy={isLoading}>
+        <div><span className="metric-label">최근 체중</span><strong className="metric-value">{latest?.weight_kg.toFixed(1) ?? "-"}<small>kg</small></strong><span className="metric-detail">{latest?.date ?? "기록 없음"}</span></div>
+        <div><span className="metric-label">최근 기록 대비</span><strong className="metric-value secondary">{change === null ? "-" : (change > 0 ? "+" : "") + change.toFixed(1)}<small>kg</small></strong><span className="metric-detail">{previous?.date ?? "이전 기록 없음"}</span></div>
+        <div><span className="metric-label">7일 평균</span><strong className="metric-value secondary">{average?.toFixed(1) ?? "-"}<small>kg</small></strong><span className="metric-detail">{recent.length}일 기록</span></div>
+      </div>
+      {plan?.goalType === "target_weight" && <div className="goal-line"><span>목표 체중 <b>{plan.goalValue.toFixed(1)} kg</b></span><span>{plan.endDate.slice(0, 10)}까지</span></div>}
+      <form className="record-form" onSubmit={save}>
+        <div className="form-title"><Plus size={18} /><h2>공복 체중</h2></div>
+        <div className="record-fields">
+          <label>날짜<input className="field" type="date" value={selectedDate} required disabled={busy || !today} onChange={(event) => setDate(event.target.value)} /></label>
+          <label>체중 (kg)<input className="field" type="number" inputMode="decimal" min="30" max="300" step="0.1" placeholder="0.0" required value={weight} disabled={busy || isLoading || !data} onChange={(event) => setWeight(event.target.value)} /></label>
+          <button className="btn btn-primary" type="submit" disabled={busy || isLoading || !data || !selectedDate}><Check size={17} />{busy ? "저장 중" : existing ? "수정 저장" : "기록 저장"}</button>
         </div>
+        {message && <p className={failed ? "form-message error-text" : "form-message"} role={failed ? "alert" : "status"}>{message}</p>}
+      </form>
+      {today && <GraphView rows={rows} today={today} />}
+      <section className="section-block" aria-labelledby="weight-history-title">
+        <div className="section-heading"><h2 id="weight-history-title">기록 내역 <span className="count">{visibleRows.length}</span></h2></div>
+        <div className="date-filter">
+          <label><span>시작일</span><input className="field" type="date" value={from} max={to || undefined} onChange={(event) => { setFrom(event.target.value); setLimit(15); }} /></label>
+          <label><span>종료일</span><input className="field" type="date" value={to} min={from || undefined} onChange={(event) => { setTo(event.target.value); setLimit(15); }} /></label>
+          {(from || to) && <button className="icon-button" type="button" aria-label="기간 초기화" title="기간 초기화" onClick={() => { setFrom(""); setTo(""); }}><X size={17} /></button>}
+        </div>
+        {isLoading ? <div className="loading-state" role="status">체중 기록을 불러오는 중입니다.</div> : !visibleRows.length ? <div className="empty-state">아직 기록이 없습니다.</div> :
+          <ul className="record-list">{visibleRows.slice(0, limit).map((row) => (
+            <li key={row.id}>
+              <time dateTime={row.date}>{row.date.replaceAll("-", ".")}</time>
+              {edit?.id === row.id ?
+                <form className="row-edit" onSubmit={(event) => { event.preventDefault(); void saveEdit(row); }}>
+                  <input className="field" aria-label={row.date + " 수정 체중"} type="number" inputMode="decimal" min="30" max="300" step="0.1" value={edit.value} disabled={busy} autoFocus onChange={(event) => setEdit({ id: row.id, value: event.target.value })} />
+                  <button className="icon-button" type="submit" title="수정 저장" aria-label="수정 저장" disabled={busy}><Check size={17} /></button>
+                  <button className="icon-button" type="button" title="수정 취소" aria-label="수정 취소" disabled={busy} onClick={() => setEdit(null)}><X size={17} /></button>
+                </form> :
+                <><strong>{row.weight_kg.toFixed(1)} <span className="muted">kg</span></strong><div className="row-actions">
+                  <button className="icon-button" type="button" title="기록 수정" aria-label={row.date + " 체중 수정"} disabled={busy} onClick={() => setEdit({ id: row.id, value: String(row.weight_kg) })}><Pencil size={16} /></button>
+                  <button className="icon-button" type="button" title="기록 삭제" aria-label={row.date + " 체중 삭제"} disabled={busy} onClick={() => void remove(row)}><Trash2 size={16} /></button>
+                </div></>}
+            </li>
+          ))}</ul>}
+        {visibleRows.length > limit && <button className="btn btn-ghost more-button" type="button" onClick={() => setLimit((value) => value + 30)}>더 보기<ChevronDown size={16} /></button>}
       </section>
-
-      <section className="panel p-4">
-        <h2 className="text-lg font-bold">체중 기록</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div>
-            <label className="label">from</label>
-            <input className="field" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">to</label>
-            <input className="field" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-          <div className="flex items-end">
-            <button className="btn btn-ghost w-full" onClick={load} data-feedback="체중 기록을 불러오는 중입니다.">
-              조회
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="small mt-3">불러오는 중...</p>
-        ) : sortedRows.length === 0 ? (
-          <p className="small mt-3">기록이 없습니다.</p>
-        ) : (
-          <ul className="mt-4 space-y-2">
-            {sortedRows.map((row) => (
-              <li key={row.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <p className="font-semibold">{row.date}</p>
-                  {editId === row.id ? (
-                    <input
-                      className="field mt-1 w-28"
-                      type="number"
-                      step="0.1"
-                      value={editWeight}
-                      onChange={(e) => setEditWeight(e.target.value)}
-                    />
-                  ) : (
-                    <p className="small">{row.weight_kg} kg</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {editId === row.id ? (
-                    <>
-                      <button className="btn btn-primary" onClick={() => saveEdit(row.id)} data-feedback="체중을 수정하는 중입니다.">
-                        저장
-                      </button>
-                      <button className="btn btn-ghost" onClick={() => setEditId(null)} data-feedback="수정을 취소했어요.">
-                        취소
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="btn btn-ghost"
-                        onClick={() => {
-                          setEditId(row.id);
-                          setEditWeight(String(row.weight_kg));
-                        }}
-                      >
-                        수정
-                      </button>
-                      <button className="btn btn-ghost" onClick={() => remove(row.id)} data-feedback="체중 기록을 삭제하는 중입니다.">
-                        삭제
-                      </button>
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {message && <p className="small">{message}</p>}
-      {toastMessage && (
-        <div
-          className={`pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-500 ${
-            toastActive ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
-          }`}
-        >
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

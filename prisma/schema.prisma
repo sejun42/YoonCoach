@@ -52,6 +52,8 @@ enum BodyPart {
   front_legs
   back_legs
   arms
+  biceps
+  triceps
 }
 
 model User {

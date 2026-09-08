@@ -1,115 +1,73 @@
-import { BodyPart } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { parseJson, requireAuth, jsonError } from "@/lib/api";
 import { dateFromYmd, toYmd } from "@/lib/date";
 import { db } from "@/lib/db";
-import { workoutPartsSchema } from "@/lib/schemas";
+import { calendarDateSchema, workoutPartsSchema } from "@/lib/schemas";
 
-const bodyPartValues = new Set<string>(Object.values(BodyPart));
+async function lastDates(client: Prisma.TransactionClient, userId: string, today: string) {
+  const groups = await client.workoutBodyPartLog.groupBy({
+    by: ["bodyPart"], where: { userId, date: { lte: dateFromYmd(today) } }, _max: { date: true }
+  });
+  return groups.flatMap((group) => group._max.date ? [{ body_part: group.bodyPart, date: toYmd(group._max.date) }] : []);
+}
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
-  if (!auth.ok) {
-    return auth.response;
-  }
-
+  if (!auth.ok) return auth.response;
+  const month = req.nextUrl.searchParams.get("month");
+  const today = req.nextUrl.searchParams.get("today") ?? toYmd(new Date());
   const from = req.nextUrl.searchParams.get("from");
   const to = req.nextUrl.searchParams.get("to");
-
-  const where: { userId: string; date?: { gte?: Date; lte?: Date } } = {
-    userId: auth.userId
-  };
-  if (from || to) {
-    where.date = {};
-    if (from) {
-      where.date.gte = dateFromYmd(from);
-    }
-    if (to) {
-      where.date.lte = dateFromYmd(to);
-    }
+  if (!calendarDateSchema.safeParse(today).success ||
+    (month && !calendarDateSchema.safeParse(month + "-01").success) ||
+    (from && !calendarDateSchema.safeParse(from).success) ||
+    (to && !calendarDateSchema.safeParse(to).success) || (from && to && from > to)) {
+    return jsonError("Invalid date range");
   }
-
-  const logs = await db.workoutBodyPartLog.findMany({
-    where,
-    orderBy: [{ date: "asc" }, { bodyPart: "asc" }]
-  });
-
+  const where: Prisma.WorkoutBodyPartLogWhereInput = { userId: auth.userId };
+  if (month) {
+    const start = dateFromYmd(month + "-01");
+    const end = new Date(start);
+    end.setUTCMonth(end.getUTCMonth() + 1);
+    where.date = { gte: start, lt: end };
+  } else if (from || to) {
+    where.date = { ...(from ? { gte: dateFromYmd(from) } : {}), ...(to ? { lte: dateFromYmd(to) } : {}) };
+  }
+  const [logs, last_dates] = await Promise.all([
+    db.workoutBodyPartLog.findMany({ where, orderBy: [{ date: "asc" }, { bodyPart: "asc" }], select: { id: true, date: true, bodyPart: true } }),
+    lastDates(db, auth.userId, today)
+  ]);
   return NextResponse.json({
-    ok: true,
-    logs: logs.map((log) => ({
-      id: log.id,
-      date: toYmd(log.date),
-      body_part: log.bodyPart
-    }))
-  });
+    ok: true, month, logs: logs.map((log) => ({ id: log.id, date: toYmd(log.date), body_part: log.bodyPart })), last_dates
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth();
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  const body = await parseJson<unknown>(req);
-  const parsed = workoutPartsSchema.safeParse(body);
-  if (!parsed.success) {
-    return jsonError("Invalid workout parts payload");
-  }
-
-  const invalidPart = parsed.data.body_parts.find((part) => !bodyPartValues.has(part));
-  if (invalidPart) {
-    return jsonError("Invalid workout body part");
-  }
-
+  if (!auth.ok) return auth.response;
+  const parsed = workoutPartsSchema.safeParse(await parseJson<unknown>(req));
+  const today = req.nextUrl.searchParams.get("today") ?? toYmd(new Date());
+  if (!parsed.success || !calendarDateSchema.safeParse(today).success) return jsonError("Invalid workout parts payload");
   const date = dateFromYmd(parsed.data.date);
-  const uniqueBodyParts = Array.from(new Set(parsed.data.body_parts)) as BodyPart[];
+  const nextParts = [...new Set(parsed.data.body_parts)];
 
-  const logs = await db.$transaction(async (tx) => {
-    const existingLogs = await tx.workoutBodyPartLog.findMany({
-      where: {
-        userId: auth.userId,
-        date
-      }
+  const result = await db.$transaction(async (tx) => {
+    // Serialize replacements for the same user/day, including initially empty dates.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${auth.userId}), hashtext(${parsed.data.date}))::text`;
+    await tx.workoutBodyPartLog.deleteMany({
+      where: { userId: auth.userId, date, bodyPart: { notIn: nextParts } }
     });
-
-    const nextParts = new Set(uniqueBodyParts);
-    const existingParts = new Set(existingLogs.map((log) => log.bodyPart));
-    const partsToDelete = existingLogs.filter((log) => !nextParts.has(log.bodyPart)).map((log) => log.bodyPart);
-    const partsToCreate = uniqueBodyParts.filter((bodyPart) => !existingParts.has(bodyPart));
-
-    if (partsToDelete.length > 0) {
-      await tx.workoutBodyPartLog.deleteMany({
-        where: {
-          userId: auth.userId,
-          date,
-          bodyPart: { in: partsToDelete }
-        }
-      });
-    }
-
-    if (partsToCreate.length > 0) {
+    if (nextParts.length) {
       await tx.workoutBodyPartLog.createMany({
-        data: partsToCreate.map((bodyPart) => ({
-          userId: auth.userId,
-          date,
-          bodyPart
-        })),
-        skipDuplicates: true
+        data: nextParts.map((bodyPart) => ({ userId: auth.userId, date, bodyPart })), skipDuplicates: true
       });
     }
-
-    return tx.workoutBodyPartLog.findMany({
-      where: {
-        userId: auth.userId,
-        date
-      },
-      orderBy: { bodyPart: "asc" }
-    });
-  });
-
-  return NextResponse.json({
-    ok: true,
-    date: parsed.data.date,
-    body_parts: logs.map((log) => log.bodyPart)
-  });
+    const logs = await tx.workoutBodyPartLog.findMany({ where: { userId: auth.userId, date }, orderBy: { bodyPart: "asc" } });
+    return {
+      logs: logs.map((log) => ({ id: log.id, date: toYmd(log.date), body_part: log.bodyPart })),
+      last_dates: await lastDates(tx, auth.userId, today)
+    };
+  }, { timeout: 10000 });
+  return NextResponse.json({ ok: true, date: parsed.data.date, body_parts: result.logs.map((log) => log.body_part), ...result });
 }

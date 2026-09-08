@@ -25,10 +25,11 @@ export async function GET() {
     return auth.response;
   }
 
-  const [weighIns, checkins, coaching] = await Promise.all([
+  const [weighIns, checkins, coaching, workouts] = await Promise.all([
     db.weighIn.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
     db.dailyCheckin.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
-    db.coachingLog.findMany({ where: { userId: auth.userId }, orderBy: { runAt: "asc" } })
+    db.coachingLog.findMany({ where: { userId: auth.userId }, orderBy: { runAt: "asc" } }),
+    db.workoutBodyPartLog.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } })
   ]);
 
   const weighInCsv = rowsToCsv(
@@ -76,7 +77,10 @@ export async function GET() {
     checkinCsv,
     "",
     "# coaching_logs",
-    coachingCsv
+    coachingCsv,
+    "",
+    "# workout_body_parts",
+    rowsToCsv(["date", "body_part"], workouts.map((row) => ({ date: toYmd(row.date), body_part: row.bodyPart })))
   ].join("\n");
 
   return new NextResponse(merged, {

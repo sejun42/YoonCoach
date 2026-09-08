@@ -34,7 +34,7 @@ function PlanEditor({ plan, onSave }: { plan: Plan; onSave: (plan: Plan) => Prom
       <label>목표 기준<select className="field" value={draft.goalType} onChange={(event) => setDraft({ ...draft, goalType: event.target.value as Plan["goalType"] })}>
         <option value="target_weight">목표 체중</option><option value="weekly_rate">주간 변화율</option>
       </select></label>
-      <label>{draft.goalType === "target_weight" ? "목표 체중 (kg)" : "주간 변화율 (%)"}<input className="field" type="number" inputMode="decimal" step="0.1" min="0.1" value={draft.goalValue || ""} required onChange={(event) => setDraft({ ...draft, goalValue: Number(event.target.value) })} /></label>
+      <label>{draft.goalType === "target_weight" ? "목표 체중 (kg)" : "주간 변화율 (%)"}<input className="field" type="number" inputMode="decimal" step={draft.goalType === "target_weight" ? "0.01" : "0.1"} min="0.1" value={draft.goalValue || ""} required onChange={(event) => setDraft({ ...draft, goalValue: Number(event.target.value) })} /></label>
       <label>목표일<input className="field" type="date" required value={draft.endDate.slice(0, 10)} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} /></label>
       <label>목표 방향<select className="field" value={draft.phase} onChange={(event) => setDraft({ ...draft, phase: event.target.value as Plan["phase"] })}>
         <option value="calibration">유지 · 조정</option><option value="cut">감량</option><option value="bulk">증량</option>

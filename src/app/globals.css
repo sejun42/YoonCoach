@@ -179,10 +179,11 @@ label { font-size: 12px; color: #64736e; }
   .screen-content { padding-top: 25px; }
   .page-heading { margin-bottom: 24px; }
   .page-heading h1 { font-size: 25px; }
+  .metric-row { grid-template-columns: 1.15fr 1.1fr 1fr; }
   .metric-row > div { padding-left: 13px; }
-  .metric-value { font-size: 32px; }
-  .metric-value.secondary { font-size: 28px; line-height: 1.71; }
-  .metric-value small { font-size: 11px; margin-left: 3px; }
+  .metric-value { font-size: 28px; line-height: 42px; }
+  .metric-value.secondary { font-size: 22px; line-height: 42px; }
+  .metric-value small { display: block; font-size: 11px; line-height: 16px; margin: 0 0 6px; }
   .metric-label { font-size: 11px; }
   .metric-detail { font-size: 10px; }
   .record-form { padding: 15px; margin-bottom: 24px; }
@@ -211,8 +212,6 @@ label { font-size: 12px; color: #64736e; }
 }
 @media (max-width: 360px) {
   .app-shell { padding-inline: 14px; }
-  .metric-value { font-size: 29px; }
-  .metric-value.secondary { font-size: 25px; }
   .metric-row > div { padding-left: 10px; }
   .record-list li { gap: 8px; }
   .row-actions .icon-button { width: 32px; flex-basis: 32px; }

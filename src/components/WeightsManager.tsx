@@ -82,16 +82,16 @@ export default function WeightsManager() {
       </div>
       {error && <div className="notice error" role="alert">체중 기록을 불러오지 못했습니다. <button onClick={() => void mutate()}>다시 시도</button></div>}
       <div className="metric-row" aria-busy={isLoading}>
-        <div><span className="metric-label">최근 체중</span><strong className="metric-value">{latest?.weight_kg.toFixed(1) ?? "-"}<small>kg</small></strong><span className="metric-detail">{latest?.date ?? "기록 없음"}</span></div>
-        <div><span className="metric-label">최근 기록 대비</span><strong className="metric-value secondary">{change === null ? "-" : (change > 0 ? "+" : "") + change.toFixed(1)}<small>kg</small></strong><span className="metric-detail">{previous?.date ?? "이전 기록 없음"}</span></div>
-        <div><span className="metric-label">7일 평균</span><strong className="metric-value secondary">{average?.toFixed(1) ?? "-"}<small>kg</small></strong><span className="metric-detail">{recent.length}일 기록</span></div>
+        <div><span className="metric-label">최근 체중</span><strong className="metric-value">{latest?.weight_kg.toFixed(2) ?? "-"}<small>kg</small></strong><span className="metric-detail">{latest?.date ?? "기록 없음"}</span></div>
+        <div><span className="metric-label">최근 기록 대비</span><strong className="metric-value secondary">{change === null ? "-" : (change > 0 ? "+" : "") + change.toFixed(2)}<small>kg</small></strong><span className="metric-detail">{previous?.date ?? "이전 기록 없음"}</span></div>
+        <div><span className="metric-label">7일 평균</span><strong className="metric-value secondary">{average?.toFixed(2) ?? "-"}<small>kg</small></strong><span className="metric-detail">{recent.length}일 기록</span></div>
       </div>
-      {plan?.goalType === "target_weight" && <div className="goal-line"><span>목표 체중 <b>{plan.goalValue.toFixed(1)} kg</b></span><span>{plan.endDate.slice(0, 10)}까지</span></div>}
+      {plan?.goalType === "target_weight" && <div className="goal-line"><span>목표 체중 <b>{plan.goalValue.toFixed(2)} kg</b></span><span>{plan.endDate.slice(0, 10)}까지</span></div>}
       <form className="record-form" onSubmit={save}>
         <div className="form-title"><Plus size={18} /><h2>공복 체중</h2></div>
         <div className="record-fields">
           <label>날짜<input className="field" type="date" value={selectedDate} required disabled={busy || !today} onChange={(event) => setDate(event.target.value)} /></label>
-          <label>체중 (kg)<input className="field" type="number" inputMode="decimal" min="30" max="300" step="0.1" placeholder="0.0" required value={weight} disabled={busy || isLoading || !data} onChange={(event) => setWeight(event.target.value)} /></label>
+          <label>체중 (kg)<input className="field" type="number" inputMode="decimal" min="30" max="300" step="0.01" placeholder="0.00" required value={weight} disabled={busy || isLoading || !data} onChange={(event) => setWeight(event.target.value)} /></label>
           <button className="btn btn-primary" type="submit" disabled={busy || isLoading || !data || !selectedDate}><Check size={17} />{busy ? "저장 중" : existing ? "수정 저장" : "기록 저장"}</button>
         </div>
         {message && <p className={failed ? "form-message error-text" : "form-message"} role={failed ? "alert" : "status"}>{message}</p>}
@@ -110,11 +110,11 @@ export default function WeightsManager() {
               <time dateTime={row.date}>{row.date.replaceAll("-", ".")}</time>
               {edit?.id === row.id ?
                 <form className="row-edit" onSubmit={(event) => { event.preventDefault(); void saveEdit(row); }}>
-                  <input className="field" aria-label={row.date + " 수정 체중"} type="number" inputMode="decimal" min="30" max="300" step="0.1" value={edit.value} disabled={busy} autoFocus onChange={(event) => setEdit({ id: row.id, value: event.target.value })} />
+                  <input className="field" aria-label={row.date + " 수정 체중"} type="number" inputMode="decimal" min="30" max="300" step="0.01" value={edit.value} disabled={busy} autoFocus onChange={(event) => setEdit({ id: row.id, value: event.target.value })} />
                   <button className="icon-button" type="submit" title="수정 저장" aria-label="수정 저장" disabled={busy}><Check size={17} /></button>
                   <button className="icon-button" type="button" title="수정 취소" aria-label="수정 취소" disabled={busy} onClick={() => setEdit(null)}><X size={17} /></button>
                 </form> :
-                <><strong>{row.weight_kg.toFixed(1)} <span className="muted">kg</span></strong><div className="row-actions">
+                <><strong>{row.weight_kg.toFixed(2)} <span className="muted">kg</span></strong><div className="row-actions">
                   <button className="icon-button" type="button" title="기록 수정" aria-label={row.date + " 체중 수정"} disabled={busy} onClick={() => setEdit({ id: row.id, value: String(row.weight_kg) })}><Pencil size={16} /></button>
                   <button className="icon-button" type="button" title="기록 삭제" aria-label={row.date + " 체중 삭제"} disabled={busy} onClick={() => void remove(row)}><Trash2 size={16} /></button>
                 </div></>}

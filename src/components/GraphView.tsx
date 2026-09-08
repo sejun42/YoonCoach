@@ -16,7 +16,7 @@ export default function GraphView({ rows, today }: { rows: WeighIn[]; today: str
       const key = shiftDate(row.date, -((day + 6) % 7));
       weeks.set(key, [...(weeks.get(key) ?? []), row.weight_kg]);
     }
-    return Array.from(weeks, ([date, values]) => ({ date, value: Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)) }));
+    return Array.from(weeks, ([date, values]) => ({ date, value: values.reduce((a, b) => a + b, 0) / values.length }));
   }, [rows, range, mode, today]);
 
   return (
@@ -42,9 +42,9 @@ export default function GraphView({ rows, today }: { rows: WeighIn[]; today: str
               <CartesianGrid vertical={false} stroke="#e6ebeb" strokeDasharray="3 5" />
               <XAxis dataKey="date" tickFormatter={(value: string) => value.slice(5).replace("-", ".")} minTickGap={34}
                 tick={{ fontSize: 11, fill: "#728080" }} axisLine={false} tickLine={false} dy={10} />
-              <YAxis domain={["dataMin - 0.8", "dataMax + 0.8"]} tickFormatter={(value: number) => value.toFixed(1)}
-                width={65} tick={{ fontSize: 11, fill: "#728080" }} axisLine={false} tickLine={false} tickCount={5} />
-              <Tooltip labelFormatter={(value) => String(value)} formatter={(value) => [Number(value).toFixed(1) + " kg", mode === "day" ? "체중" : "주간 평균"]}
+              <YAxis domain={["dataMin - 0.8", "dataMax + 0.8"]} tickFormatter={(value: number) => value.toFixed(2)}
+                width={72} tick={{ fontSize: 11, fill: "#728080" }} axisLine={false} tickLine={false} tickCount={5} />
+              <Tooltip labelFormatter={(value) => String(value)} formatter={(value) => [Number(value).toFixed(2) + " kg", mode === "day" ? "체중" : "주간 평균"]}
                 contentStyle={{ border: "1px solid #dbe3e2", borderRadius: 8, fontSize: 13 }} />
               <Line type="monotone" dataKey="value" stroke="#168c89" strokeWidth={2.5}
                 dot={chartRows.length < 40 ? { r: 3, strokeWidth: 2, fill: "#fff" } : false} activeDot={{ r: 6 }} isAnimationActive={false} />

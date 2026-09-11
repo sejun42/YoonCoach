@@ -4,13 +4,13 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { SWRConfig } from "swr";
 import AppShell, { trackerTabs } from "./AppShell";
-import WeightsManager from "./WeightsManager";
+import WeightNutritionWorkspace from "./WeightNutritionWorkspace";
 import BodyPartCalendar from "./BodyPartCalendar";
 import SettingsPanel from "./SettingsPanel";
 import { requestJson } from "@/lib/tracker-client";
 
 const screens = {
-  "/weights": WeightsManager,
+  "/weights": WeightNutritionWorkspace,
   "/body-parts": BodyPartCalendar,
   "/settings": SettingsPanel
 };

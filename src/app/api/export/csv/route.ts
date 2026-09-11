@@ -47,7 +47,8 @@ export async function GET() {
       "intake_calories",
       "intake_carbs_g",
       "intake_protein_g",
-      "intake_fat_g"
+      "intake_fat_g",
+      "target_calories", "target_carbs_g", "target_protein_g", "target_fat_g", "nutrition_source"
     ],
     checkins.map((c) => ({
       date: toYmd(c.date),
@@ -56,7 +57,12 @@ export async function GET() {
       intake_calories: c.intakeCalories,
       intake_carbs_g: c.intakeCarbsG,
       intake_protein_g: c.intakeProteinG,
-      intake_fat_g: c.intakeFatG
+      intake_fat_g: c.intakeFatG,
+      target_calories: c.nutritionTargetCalories,
+      target_carbs_g: c.nutritionTargetCarbsG,
+      target_protein_g: c.nutritionTargetProteinG,
+      target_fat_g: c.nutritionTargetFatG,
+      nutrition_source: c.nutritionSource
     }))
   );
   const coachingCsv = rowsToCsv(

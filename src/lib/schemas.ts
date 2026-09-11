@@ -46,10 +46,10 @@ export const checkinSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   adherence_status: z.enum(["good", "ok", "bad"]),
   intake_known: z.boolean(),
-  intake_calories: z.number().int().positive().optional().nullable(),
-  intake_carbs_g: z.number().int().nonnegative().optional().nullable(),
-  intake_protein_g: z.number().int().nonnegative().optional().nullable(),
-  intake_fat_g: z.number().int().nonnegative().optional().nullable()
+  intake_calories: z.number().finite().nonnegative().optional().nullable(),
+  intake_carbs_g: z.number().finite().nonnegative().optional().nullable(),
+  intake_protein_g: z.number().finite().nonnegative().optional().nullable(),
+  intake_fat_g: z.number().finite().nonnegative().optional().nullable()
 });
 
 export const workoutPartsSchema = z.object({

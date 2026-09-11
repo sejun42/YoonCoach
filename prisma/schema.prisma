@@ -120,12 +120,17 @@ model DailyCheckin {
   id             String           @id @default(cuid())
   userId         String
   date           DateTime
-  adherenceStatus AdherenceStatus
+  adherenceStatus AdherenceStatus?
   intakeKnown    Boolean
-  intakeCalories Int?
-  intakeCarbsG   Int?
-  intakeProteinG Int?
-  intakeFatG     Int?
+  intakeCalories Float?
+  intakeCarbsG   Float?
+  intakeProteinG Float?
+  intakeFatG     Float?
+  nutritionTargetCalories Float?
+  nutritionTargetCarbsG   Float?
+  nutritionTargetProteinG Float?
+  nutritionTargetFatG     Float?
+  nutritionSource String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)

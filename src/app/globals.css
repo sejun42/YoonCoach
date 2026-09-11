@@ -49,6 +49,40 @@ h1, h2, h3, p { margin: 0; }
 .metric-value.secondary { font-size: 34px; line-height: 1.76; color: var(--text); }
 .metric-value small { margin-left: 5px; font-size: 13px; color: var(--muted); font-weight: 500; }
 .metric-detail { color: var(--muted); font-size: 11px; }
+.tracking-tabs { padding-top: 22px; }
+.tracking-tabs .segmented button[aria-selected="true"] { color: var(--text); background: white; box-shadow: 0 1px 3px #20312f12; }
+.tracking-tabs ~ [role="tabpanel"] .screen-content { padding-top: 22px; }
+.nutrition-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 24px; }
+.nutrition-summary > div + div { border-left: 1px solid var(--line); padding-left: 20px; }
+.nutrition-summary strong { display: block; font-size: 28px; line-height: 1.5; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.nutrition-summary small { display: block; font-size: 11px; line-height: 18px; color: var(--muted); font-weight: 400; }
+.nutrition-import { padding-bottom: 24px; }
+.field.nutrition-text { height: 104px; resize: vertical; line-height: 1.6; overflow-wrap: anywhere; }
+.nutrition-import .btn { margin-top: 12px; }
+.nutrition-editor { scroll-margin-top: 16px; }
+.nutrition-editor > label { display: block; max-width: 260px; }
+.nutrition-editor > .btn { margin-top: 16px; }
+.nutrition-inputs { display: grid; grid-template-columns: 76px repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-top: 20px; max-width: 600px; font-size: 12px; color: var(--muted); }
+.nutrition-input-row { display: contents; }
+.nutrition-input-row > span { align-self: center; color: var(--text); }
+.nutrition-inputs small, .nutrition-table small { display: block; color: var(--muted); font-size: 10px; font-weight: 400; }
+.nutrition-inputs .field { margin: 0; }
+.nutrition-metrics { margin-bottom: 16px; }
+.nutrition-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.nutrition-legend > span { display: flex; gap: 6px; align-items: center; }
+.nutrition-history { list-style: none; padding: 0; margin: 0; }
+.nutrition-history > li { border-bottom: 1px solid var(--line); padding: 16px 0; }
+.nutrition-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nutrition-history-heading > div:first-child { min-width: 0; }
+.nutrition-history time { display: block; font-size: 12px; color: var(--muted); }
+.nutrition-history strong { display: block; font-size: 20px; line-height: 1.8; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.nutrition-history strong small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.nutrition-history summary { cursor: pointer; min-height: 36px; padding-top: 10px; font-size: 12px; color: var(--muted); }
+.nutrition-table { table-layout: fixed; width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.nutrition-table th, .nutrition-table td { text-align: right; padding: 9px 2px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.nutrition-table th:first-child { text-align: left; font-weight: 500; }
+.nutrition-table thead { color: var(--muted); }
+.nutrition-source p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; margin: 8px 0; color: var(--muted); }
 .goal-line { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0 22px; color: var(--muted); font-size: 12px; }
 .goal-line b { color: var(--text); margin-left: 8px; }
 .record-form { border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; margin-bottom: 30px; background: #fbfcfb; }
@@ -186,6 +220,11 @@ label { font-size: 12px; color: #64736e; }
   .metric-value small { display: block; font-size: 11px; line-height: 16px; margin: 0 0 6px; }
   .metric-label { font-size: 11px; }
   .metric-detail { font-size: 10px; }
+  .nutrition-summary strong { font-size: 24px; }
+  .nutrition-inputs { grid-template-columns: 58px repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .nutrition-import .btn, .nutrition-editor > .btn { width: 100%; }
+  .nutrition-metrics { display: flex; }
+  .nutrition-metrics button { flex: 1; min-width: 0; }
   .record-form { padding: 15px; margin-bottom: 24px; }
   .record-fields { grid-template-columns: 1.2fr 1fr; gap: 12px; }
   .record-fields > button { grid-column: 1 / -1; }

@@ -11,6 +11,16 @@ const schema = execFileSync(process.execPath, [
 ], { encoding: "utf8" });
 // Recreate the deployed enum before this change, then apply the production upgrade twice.
 await database.exec(schema.replace(", 'biceps', 'triceps'", ""));
+await database.exec(`
+  ALTER TABLE "DailyCheckin"
+    ALTER COLUMN "adherenceStatus" SET NOT NULL,
+    ALTER COLUMN "intakeCalories" TYPE INTEGER,
+    ALTER COLUMN "intakeCarbsG" TYPE INTEGER,
+    ALTER COLUMN "intakeProteinG" TYPE INTEGER,
+    ALTER COLUMN "intakeFatG" TYPE INTEGER,
+    DROP COLUMN "nutritionTargetCalories", DROP COLUMN "nutritionTargetCarbsG",
+    DROP COLUMN "nutritionTargetProteinG", DROP COLUMN "nutritionTargetFatG", DROP COLUMN "nutritionSource";
+`);
 const previousParts = (await database.query(`SELECT enumlabel FROM pg_enum JOIN pg_type ON pg_type.oid = enumtypid WHERE typname = 'BodyPart'`)).rows;
 assert(!previousParts.some((part) => part.enumlabel === "biceps" || part.enumlabel === "triceps"));
 await database.exec(`
@@ -41,6 +51,7 @@ for (let index = 0; index < 60; index++) {
     ["weight-" + index, "qa-user", date.toISOString(), Number((75.6 - index * .045 + Math.sin(index) * .2).toFixed(1))]);
 }
 const before = (await database.query('SELECT * FROM "WorkoutBodyPartLog" ORDER BY "id"')).rows;
+const beforeCheckins = (await database.query('SELECT * FROM "DailyCheckin" ORDER BY "id"')).rows;
 const pgServer = createServer(database);
 await new Promise((resolve, reject) => {
   pgServer.once("error", reject);
@@ -53,6 +64,8 @@ try {
   await promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 20000 });
   await promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 20000 });
   assert.deepEqual((await database.query('SELECT * FROM "WorkoutBodyPartLog" ORDER BY "id"')).rows, before);
+  const checkinColumns = Object.keys(beforeCheckins[0]).map((key) => '"' + key + '"').join(',');
+  assert.deepEqual((await database.query('SELECT ' + checkinColumns + ' FROM "DailyCheckin" ORDER BY "id"')).rows, beforeCheckins);
   console.log("Verified: production upgrade command preserves legacy rows and can be repeated.");
 } catch (error) {
   pgServer.close();

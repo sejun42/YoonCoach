@@ -124,13 +124,16 @@ export default function BodyPartCalendar() {
               if (day < 1 || day > totalDays) return <div key={index} className="calendar-blank" />;
               const date = month + "-" + String(day).padStart(2, "0");
               const parts = logsByDate.get(date) ?? [];
-              const labels = allBodyParts.filter((part) => parts.includes(part.key)).map((part) => part.label);
+              const dayParts = allBodyParts.filter((part) => parts.includes(part.key));
+              const labels = dayParts.map((part) => part.label);
               return <button key={date} className="calendar-day" aria-label={date + (labels.length ? " " + labels.join(", ") : " 기록 없음")}
                 aria-pressed={date === selectedDate} aria-current={date === today ? "date" : undefined}
                 disabled={blocked} onClick={() => chooseDate(date, true)}>
                 <span className="day-number">{day}</span>
-                <span className="day-parts" aria-hidden="true">{allBodyParts.filter((part) => parts.includes(part.key)).map((part) =>
-                  <i key={part.key} className="day-part" style={{ background: part.color }} title={part.label} />)}</span>
+                <span className="day-parts" aria-hidden="true">{dayParts.map((part) =>
+                  <span key={part.key} className="day-part" style={partStyle(part.color)} title={part.label}>
+                    {"calendarLabel" in part ? part.calendarLabel : part.label}
+                  </span>)}</span>
               </button>;
             })}
           </div>

@@ -14,13 +14,14 @@ export const currentBodyParts = [
 ] as const;
 
 export const legacyBodyParts = [
-  { key: "legs", label: "하체 (기존)", color: "#6e7c85" },
-  { key: "arms", label: "팔 (기존)", color: "#a38154" }
+  { key: "legs", label: "하체 (기존)", calendarLabel: "하체", color: "#6e7c85" },
+  { key: "arms", label: "팔 (기존)", calendarLabel: "팔", color: "#a38154" }
 ] as const;
 export const allBodyParts = [...currentBodyParts, ...legacyBodyParts];
 
 export function recommendPart(lastDates: PartLastDate[]) {
-  // Legacy combined records cannot tell us which split muscle was trained.
+  // Arm isolation work remains recordable but does not drive the next main workout.
   const dates = new Map(lastDates.map((part) => [part.body_part, part.date]));
-  return [...currentBodyParts].sort((a, b) => (dates.get(a.key) ?? "").localeCompare(dates.get(b.key) ?? ""))[0];
+  return currentBodyParts.filter((part) => part.key !== "biceps" && part.key !== "triceps")
+    .sort((a, b) => (dates.get(a.key) ?? "").localeCompare(dates.get(b.key) ?? ""))[0];
 }

@@ -1,5 +1,6 @@
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { createHmac } from "node:crypto";
+import { allBodyParts, currentBodyParts, recommendPart, type PartLastDate } from "../../src/lib/body-parts";
 
 function token(userId: string) {
   const payload = Buffer.from(JSON.stringify({ userId, exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url");
@@ -17,6 +18,55 @@ async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 const nav = (page: Page, name: string) => page.getByRole("navigation", { name: "주 메뉴" }).getByRole("link", { name, exact: true });
+
+test("recommendations exclude arms while retaining the oldest main muscle priority", () => {
+  expect(recommendPart([]).key).toBe("chest");
+  const mainDates: PartLastDate[] = currentBodyParts.filter((part) => part.key !== "biceps" && part.key !== "triceps")
+    .map((part) => ({ body_part: part.key, date: part.key === "front_legs" ? "2026-09-01" : "2026-09-07" }));
+  expect(recommendPart(mainDates).key).toBe("front_legs");
+  expect(recommendPart([...mainDates, { body_part: "biceps", date: "2020-01-01" }, { body_part: "triceps", date: "2020-01-02" }]).key).toBe("front_legs");
+  expect(recommendPart(mainDates.filter((part) => part.body_part !== "back")).key).toBe("back");
+});
+
+test("calendar labels preserve colors and fit every part without clipping on mobile and desktop", async ({ page }) => {
+  const last_dates = currentBodyParts.filter((part) => part.key !== "biceps" && part.key !== "triceps")
+    .map((part) => ({ body_part: part.key, date: part.key === "front_legs" ? "2026-09-01" : "2026-09-07" }));
+  await page.route("**/api/workout-parts?**", (route) => route.fulfill({ json: {
+    ok: true, month: "2026-09", last_dates,
+    logs: allBodyParts.map((part) => ({ id: part.key, date: "2026-09-06", body_part: part.key }))
+  } }));
+  await ready(page, "/body-parts");
+  await expect(page.locator(".recommendation strong")).toHaveText("전면하체");
+  const day = page.locator(".calendar-day").filter({ has: page.locator(".day-part") });
+  await expect(day).toHaveCount(1);
+  await expect(day.locator(".day-part")).toHaveText(["가슴", "어깨", "등", "전면하체", "후면하체", "이두", "삼두", "하체", "팔"]);
+  for (const part of allBodyParts) {
+    const label = day.locator(".day-part").filter({ hasText: new RegExp("^" + ("calendarLabel" in part ? part.calendarLabel : part.label) + "$") });
+    expect(await label.evaluate((element) => (element as HTMLElement).style.getPropertyValue("--part-color"))).toBe(part.color);
+  }
+  for (const width of [320, 361, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noOverflow(page);
+    expect(await day.evaluate((element) => {
+      const cell = element.getBoundingClientRect();
+      let previousBottom = element.querySelector(".day-number")!.getBoundingClientRect().bottom;
+      return [...element.querySelectorAll(".day-part")].every((label) => {
+        const box = label.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const text = range.getBoundingClientRect();
+        const fits = text.left >= box.left && text.right <= box.right + .5 && box.top >= previousBottom && box.bottom <= cell.bottom;
+        previousBottom = box.bottom;
+        return fits;
+      });
+    }), "Calendar label overflow at " + width).toBe(true);
+    await page.screenshot({ path: "test-results/body-labels-" + width + ".png", fullPage: true });
+  }
+  await day.click();
+  await expect(page.getByRole("checkbox", { name: "이두", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "삼두", exact: true })).toBeChecked();
+  await expect(page.locator(".frequency-row").filter({ hasText: "이두" })).toContainText("1회");
+});
 
 test("three tabs switch without server navigation and keep input on back/forward", async ({ page }) => {
   await ready(page);

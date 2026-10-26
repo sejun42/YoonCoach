@@ -68,13 +68,13 @@
 .workout-note textarea.field { height: auto; min-height: 76px; resize: vertical; font-family: inherit; font-size: 13px; line-height: 1.8; }
 .workout-savebar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 0 24px; }
 .workout-savebar > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.workout-dialog { padding: 0; border: 1px solid var(--line); border-radius: 16px; width: min(600px, calc(100vw - 24px)); max-height: 88dvh; color: var(--text); background: white; box-shadow: 0 20px 90px #14352c30; }
+.workout-dialog { --dialog-gap: 12px; position: fixed; top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-viewport-height, 100dvh) / 2); bottom: auto; margin: 0 auto; transform: translateY(-50%); padding: 0; border: 1px solid var(--line); border-radius: 16px; width: min(600px, calc(100vw - 24px)); max-height: calc(var(--dialog-viewport-height, 100dvh) - var(--dialog-gap) * 2); overflow-y: auto; overscroll-behavior: contain; color: var(--text); background: white; box-shadow: 0 20px 90px #14352c30; }
 .workout-dialog::backdrop { background: #122a2366; backdrop-filter: blur(3px); }
 .dialog-content { padding: 24px; }
 .dialog-content > .section-heading { margin-bottom: 16px; }
 .dialog-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
 .exercise-search { display: flex; align-items: center; gap: 9px; border: 1px solid #cfded6; border-radius: 8px; padding: 0 12px; color: var(--muted); }
-.exercise-search input { width: 100%; border: 0; background: transparent; height: 46px; font-size: 14px; min-width: 0; }
+.exercise-search input { width: 100%; border: 0; background: transparent; height: 46px; font-size: 16px; min-width: 0; }
 .exercise-search:focus-within { outline: 2px solid #92c8b9; }
 .exercise-search input:focus { outline: none; }
 .exercise-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 8px; }
@@ -82,7 +82,10 @@
 .exercise-filters button[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); }
 .picker-meta { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 11px; color: var(--muted); }
 .picker-meta .text-button { display: inline-flex; align-items: center; gap: 3px; }
-.exercise-results { max-height: 42dvh; overflow-y: auto; overscroll-behavior: contain; }
+.exercise-picker-dialog { height: min(740px, calc(var(--dialog-viewport-height, 100dvh) - var(--dialog-gap) * 2)); overflow: hidden; }
+.exercise-picker-dialog .dialog-content { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.exercise-picker-dialog .dialog-content > * { flex-shrink: 0; }
+.exercise-picker-dialog .exercise-picker-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 8px; }
 .exercise-result { border: 0; border-bottom: 1px solid #edf1ef; background: white; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 6px; color: var(--text); text-align: left; }
 .exercise-result:hover:not(:disabled) { background: #f6faf7; }
 .exercise-result > span { min-width: 0; }
@@ -96,6 +99,15 @@
 .tag-picker button[aria-pressed="true"] { border-color: var(--part-color); color: var(--part-color); background: color-mix(in srgb, var(--part-color) 7%, white); }
 .custom-exercise { padding: 16px; border-radius: 8px; background: #f5f8f6; margin: 8px 0; }
 .custom-exercise > label { display: block; margin-bottom: 12px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .dialog-content { padding: 12px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .section-heading { margin-bottom: 8px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .section-heading .icon-button { height: 30px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .exercise-search input { height: 40px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .exercise-filters { flex-wrap: nowrap; overflow-x: auto; margin: 8px 0 4px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .exercise-filters button { flex-shrink: 0; }
+.exercise-picker-dialog[data-compact-viewport="true"] .picker-meta .text-button { min-height: 30px; padding-block: 4px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .dialog-footer { margin-top: 8px; padding-top: 8px; }
+.exercise-picker-dialog[data-compact-viewport="true"] .exercise-result { padding-block: 10px; }
 .settings-exercise-name { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
 .machine-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .machine-settings > div { display: flex; align-items: flex-end; gap: 4px; min-width: 0; }
@@ -149,6 +161,10 @@
   .workout-savebar > div { max-width: 45%; gap: 0; }
   .workout-savebar .btn { font-size: 12px; padding: 10px 13px; }
   .dialog-content { padding: 18px; }
+  .workout-dialog { --dialog-gap: max(8px, env(safe-area-inset-top), env(safe-area-inset-bottom)); }
+  .exercise-picker-dialog { top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-gap)); transform: none; }
+  .exercise-picker-dialog .exercise-filters { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; }
+  .exercise-picker-dialog .exercise-filters button { flex-shrink: 0; }
   .progress-controls { flex-wrap: wrap; }
   .progress-controls .segmented { width: 100%; }
   .progress-controls .segmented button { flex: 1; padding: 6px 7px; font-size: 11px; }

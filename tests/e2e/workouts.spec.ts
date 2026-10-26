@@ -189,3 +189,91 @@ test("custom exercise picker limits tags, makes account-owned exercises and pres
   await page.getByRole("button", { name: "운동 기록 저장", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("운동 기록을 저장했습니다");
 });
+
+test("exercise search stays above the keyboard when only the visual viewport shrinks or pans", async ({ page }) => {
+  await open(page, "2026-10-24");
+  await page.getByRole("button", { name: "운동 추가", exact: false }).click();
+  const dialog = page.getByRole("dialog", { name: "운동 추가" });
+  const search = dialog.getByLabel("운동 검색", { exact: true });
+  const initialHeight = await page.evaluate(() => innerHeight);
+  // An OS keyboard is unavailable in headless browsers. Keep the layout viewport
+  // unchanged and emulate the browser's visual-viewport resize/scroll events.
+  for (const viewport of [{ width: 390, height: 400, top: 0 }, { width: 320, height: 360, top: 0 }, { width: 390, height: 380, top: 64 }]) {
+    await page.setViewportSize({ width: viewport.width, height: initialHeight });
+    await search.fill("");
+    await page.evaluate(({ height, top }) => {
+      const visual = window.visualViewport!;
+      Object.defineProperty(visual, "height", { configurable: true, value: height });
+      Object.defineProperty(visual, "offsetTop", { configurable: true, value: top });
+      visual.dispatchEvent(new Event("resize"));
+      visual.dispatchEvent(new Event("scroll"));
+    }, viewport);
+    expect(await page.evaluate(() => innerHeight)).toBe(initialHeight);
+    await expect(search).toBeFocused();
+    const layout = await dialog.evaluate((element) => {
+      const box = (selector: string) => element.querySelector(selector)!.getBoundingClientRect();
+      const modal = element.getBoundingClientRect();
+      const search = box(".exercise-search");
+      const list = box(".exercise-picker-body");
+      const first = box(".exercise-result");
+      const footer = box(".dialog-footer");
+      return { top: modal.top, bottom: modal.bottom, searchTop: search.top, searchBottom: search.bottom,
+        listTop: list.top, listHeight: list.height, firstBottom: first.bottom, footerTop: footer.top, footerBottom: footer.bottom };
+    });
+    expect(layout.top).toBeGreaterThanOrEqual(viewport.top);
+    expect(layout.bottom).toBeLessThanOrEqual(viewport.top + viewport.height);
+    expect(layout.searchTop).toBeGreaterThanOrEqual(layout.top);
+    expect(layout.listTop).toBeGreaterThan(layout.searchBottom);
+    expect(layout.listHeight).toBeGreaterThanOrEqual(80);
+    expect(layout.firstBottom).toBeLessThanOrEqual(layout.footerTop);
+    expect(layout.footerBottom).toBeLessThanOrEqual(layout.bottom);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await dialog.locator(".exercise-picker-body").evaluate((element) => { element.scrollTop = 500; });
+    await search.fill("풀오버");
+    await expect(dialog.getByRole("button", { name: "덤벨 풀오버 추가", exact: true })).toBeInViewport();
+    expect(await dialog.locator(".exercise-picker-body").evaluate((element) => element.scrollTop)).toBe(0);
+    await page.screenshot({ path: "test-results/exercise-keyboard-" + viewport.width + "-" + viewport.top + ".png", clip: { x: 0, y: viewport.top, width: viewport.width, height: viewport.height } });
+  }
+  await dialog.getByRole("button", { name: "덤벨 풀오버 추가", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "덤벨 풀오버 추가됨", exact: true })).toBeDisabled();
+  await page.evaluate(() => {
+    const visual = window.visualViewport!;
+    Reflect.deleteProperty(visual, "height");
+    Reflect.deleteProperty(visual, "offsetTop");
+    visual.dispatchEvent(new Event("resize"));
+    visual.dispatchEvent(new Event("scroll"));
+  });
+  await expect(dialog).toHaveAttribute("data-compact-viewport", "false");
+  const expanded = await dialog.boundingBox();
+  expect(expanded!.height).toBeGreaterThan(600);
+  await dialog.getByRole("button", { name: "선택 완료", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+  await expect(page.getByRole("article", { name: "덤벨 풀오버", exact: true })).toBeVisible();
+});
+
+test("picker can scroll custom exercise fields in a short content viewport and reopens on desktop", async ({ page }) => {
+  await open(page, "2026-10-23");
+  await page.setViewportSize({ width: 390, height: 400 });
+  await page.getByRole("button", { name: "운동 추가", exact: false }).click();
+  const dialog = page.getByRole("dialog", { name: "운동 추가" });
+  await dialog.getByRole("button", { name: "직접 종목 만들기", exact: true }).click();
+  await dialog.getByLabel("종목 이름", { exact: true }).fill("키보드 확인용");
+  await dialog.locator(".custom-exercise .tag-picker").getByRole("button", { name: "등", exact: true }).click();
+  const save = dialog.getByRole("button", { name: "내 종목으로 저장하고 추가", exact: true });
+  await save.scrollIntoViewIfNeeded();
+  const positions = await dialog.evaluate((element) => ({
+    save: element.querySelector(".custom-exercise > .btn")!.getBoundingClientRect().bottom,
+    footer: element.querySelector(".dialog-footer")!.getBoundingClientRect().top
+  }));
+  expect(positions.save).toBeLessThanOrEqual(positions.footer);
+  await expect(dialog.getByLabel("운동 검색", { exact: true })).toBeInViewport();
+  await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole("button", { name: "운동 추가", exact: false }).click();
+  const bounds = await dialog.boundingBox();
+  expect(bounds!.width).toBe(600);
+  expect(Math.abs(bounds!.y + bounds!.height / 2 - 450)).toBeLessThan(1);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+});

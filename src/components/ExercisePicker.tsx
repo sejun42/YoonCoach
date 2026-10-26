@@ -42,7 +42,7 @@ export default function ExercisePicker({ exercises, selected, onAdd, onCreated, 
     <div className="exercise-results">{visible.map((exercise) => {
       const added = selected.includes(exercise.id);
       return <button className="exercise-result" type="button" key={exercise.id} disabled={busy || added || selected.length >= 60} onClick={() => onAdd(exercise)} aria-label={exercise.name + (added ? " 추가됨" : " 추가")}>
-        <span><strong>{exercise.name}</strong><span className="exercise-result-meta"><PartTags tags={exercise.tags} /><small>{equipmentLabels[exercise.equipment]}{exercise.custom ? " · 내 종목" : ""}</small></span></span>{added ? <Check size={18} /> : <Plus size={18} />}
+        <span><strong>{exercise.name}</strong><span className="exercise-result-meta"><PartTags tags={exercise.tags} /><small>{equipmentLabels[exercise.equipment]}{exercise.custom ? " · 내 종목" : ""}{exercise.shared ? " · 공용" : ""}</small></span></span>{added ? <Check size={18} /> : <Plus size={18} />}
       </button>;
     })}{!visible.length && <p className="empty-state">일치하는 종목이 없습니다. 직접 추가할 수 있어요.</p>}</div>
     </div>

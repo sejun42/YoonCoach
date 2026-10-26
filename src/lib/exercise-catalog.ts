@@ -5,7 +5,11 @@ export type ExerciseTag = (typeof exerciseTagKeys)[number];
 export const equipmentKeys = ["machine", "barbell", "dumbbell", "smith", "cable", "bodyweight"] as const;
 export type Equipment = (typeof equipmentKeys)[number];
 export const equipmentLabels: Record<Equipment, string> = { machine: "머신", barbell: "바벨", dumbbell: "덤벨", smith: "스미스", cable: "케이블", bodyweight: "맨몸 / 추가 중량" };
-export type Exercise = { id: string; name: string; tags: ExerciseTag[]; equipment: Equipment; custom?: boolean };
+export type Exercise = { id: string; name: string; tags: ExerciseTag[]; equipment: Equipment; custom?: boolean; shared?: boolean };
+
+export function exerciseIdentity(exercise: { name: string; equipment: string }) {
+  return exercise.equipment + ":" + exercise.name.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+}
 
 function group(prefix: string, brand: string, equipment: Equipment, tags: ExerciseTag[], names: string[]): Exercise[] {
   // IDs derive from the full exercise name, never from its position in the catalog.

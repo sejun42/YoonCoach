@@ -12,6 +12,7 @@ const schema = execFileSync(process.execPath, [
 // Recreate the deployed enum before this change, then apply the production upgrade twice.
 await database.exec(schema.replace(", 'biceps', 'triceps'", "").replace(", 'core'", ""));
 await database.exec('DROP TABLE "WorkoutSession", "WorkoutRoutine", "CustomExercise", "ExercisePreference";');
+await database.exec('ALTER TABLE "UserSetting" DROP COLUMN "shareExercisesWeekly";');
 await database.exec(`
   ALTER TABLE "DailyCheckin"
     ALTER COLUMN "adherenceStatus" SET NOT NULL,
@@ -26,7 +27,9 @@ const previousParts = (await database.query(`SELECT enumlabel FROM pg_enum JOIN 
 assert(!previousParts.some((part) => part.enumlabel === "biceps" || part.enumlabel === "triceps"));
 await database.exec(`
   INSERT INTO "User" ("id","email","passwordHash") VALUES
-    ('qa-user','qa@example.invalid','unused'), ('other-user','other@example.invalid','unused');
+    ('qa-user','qa@example.invalid','unused'), ('other-user','other@example.invalid','unused'),
+    ('share-owner','share-owner@example.invalid','unused'), ('share-peer','share-peer@example.invalid','unused'),
+    ('share-private','share-private@example.invalid','unused');
   INSERT INTO "Profile" ("userId","sex","age","heightCm","timezone","activity","updatedAt")
     VALUES ('qa-user','male',30,175,'Asia/Seoul','moderate',CURRENT_TIMESTAMP);
   INSERT INTO "Plan" ("id","userId","phase","goalType","goalValue","startDate","endDate","targetCalories","targetCarbsG","targetProteinG","targetFatG","updatedAt")
@@ -66,7 +69,17 @@ try {
     ? promisify(execFile)(process.execPath, [process.env.npm_execpath, "run", "db:upgrade"], { env: testEnv, timeout: 30000 })
     : promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 30000 });
   await upgrade();
+  await database.exec(`
+    INSERT INTO "CustomExercise" ("id","userId","name","tags","equipment")
+      VALUES ('existing-private','share-private','기존 비공개 머신',ARRAY['back'],'machine');
+    INSERT INTO "CustomExercise" ("id","userId","name","tags","equipment","publicAt") VALUES
+      ('released-machine','share-private','공개 시각 지난 머신',ARRAY['back'],'machine','2000-01-03'),
+      ('future-machine','share-private','아직 공개 전 머신',ARRAY['chest'],'machine','2099-01-05');
+  `);
+  const beforeExercises = (await database.query('SELECT * FROM "CustomExercise" ORDER BY "id"')).rows;
   await upgrade();
+  assert.deepEqual((await database.query('SELECT * FROM "CustomExercise" ORDER BY "id"')).rows, beforeExercises);
+  assert.equal((await database.query('SELECT "shareExercisesWeekly" FROM "UserSetting" WHERE "userId" = \'qa-user\'')).rows[0].shareExercisesWeekly, false);
   assert.deepEqual((await database.query('SELECT * FROM "WorkoutBodyPartLog" ORDER BY "id"')).rows, before);
   const checkinColumns = Object.keys(beforeCheckins[0]).map((key) => '"' + key + '"').join(',');
   assert.deepEqual((await database.query('SELECT ' + checkinColumns + ' FROM "DailyCheckin" ORDER BY "id"')).rows, beforeCheckins);

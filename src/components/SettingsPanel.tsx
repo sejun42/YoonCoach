@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import useSWR from "swr";
 import { ArrowUpRight, Bell, Check, Download, LogOut, Target } from "lucide-react";
 import { requestJson, type Plan, type PlanResponse } from "@/lib/tracker-client";
+import ExerciseSharingPanel from "./ExerciseSharingPanel";
 
 type Settings = { notify_time: string; coaching_day_of_week: number; coaching_time: string };
 type SettingsResponse = { ok: true; settings: Settings | null };
@@ -139,6 +140,7 @@ export default function SettingsPanel() {
         !settingsData ? <div className="loading-state">알림 시간을 불러오는 중입니다.</div> :
         <NotificationEditor initial={settingsData.settings ?? defaults} onSave={async (settings) => { await mutateSettings({ ok: true, settings }, { revalidate: false }); }} />}
     </section>
+    <ExerciseSharingPanel />
     <section className="section-block">
       <div className="section-heading"><h2>기록 관리</h2></div>
       <a className="settings-link" href="/api/export/csv" download><span><Download size={18} />전체 기록 다운로드<small>체중 · 운동 세트 / 루틴 · 식단 · 코칭</small></span><ArrowUpRight size={18} /></a>

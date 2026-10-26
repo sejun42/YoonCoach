@@ -9,6 +9,8 @@
 /build
 /test-results
 /playwright-report
+/.tools
+/.npm-cache
 
 # env
 .env

@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 30000,
-  use: { baseURL: "http://127.0.0.1:3100", timezoneId: "Asia/Seoul", viewport: { width: 390, height: 844 }, trace: "retain-on-failure" },
+  use: { baseURL: "http://127.0.0.1:3100", timezoneId: "Asia/Seoul", viewport: { width: 390, height: 844 }, trace: "retain-on-failure", channel: process.env.PLAYWRIGHT_CHANNEL || undefined },
   webServer: {
     command: "node tests/start-server.mjs",
     url: "http://127.0.0.1:3100/auth",

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api";
 import { db } from "@/lib/db";
 import { toYmd } from "@/lib/date";
+import { readEntries } from "@/lib/services/workouts";
 
 function csvEscape(value: unknown) {
-  const raw = value === null || value === undefined ? "" : String(value);
+  const text = value === null || value === undefined ? "" : String(value);
+  const raw = typeof value === "string" && /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
   if (raw.includes(",") || raw.includes('"') || raw.includes("\n")) {
     return `"${raw.replace(/"/g, '""')}"`;
   }
@@ -25,11 +27,15 @@ export async function GET() {
     return auth.response;
   }
 
-  const [weighIns, checkins, coaching, workouts] = await Promise.all([
+  const [weighIns, checkins, coaching, workouts, sessions, routines, exercises, preferences] = await Promise.all([
     db.weighIn.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
     db.dailyCheckin.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
     db.coachingLog.findMany({ where: { userId: auth.userId }, orderBy: { runAt: "asc" } }),
-    db.workoutBodyPartLog.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } })
+    db.workoutBodyPartLog.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
+    db.workoutSession.findMany({ where: { userId: auth.userId }, orderBy: { date: "asc" } }),
+    db.workoutRoutine.findMany({ where: { userId: auth.userId }, orderBy: { name: "asc" } }),
+    db.customExercise.findMany({ where: { userId: auth.userId }, orderBy: { name: "asc" } }),
+    db.exercisePreference.findMany({ where: { userId: auth.userId } })
   ]);
 
   const weighInCsv = rowsToCsv(
@@ -86,7 +92,19 @@ export async function GET() {
     coachingCsv,
     "",
     "# workout_body_parts",
-    rowsToCsv(["date", "body_part"], workouts.map((row) => ({ date: toYmd(row.date), body_part: row.bodyPart })))
+    rowsToCsv(["date", "body_part"], workouts.map((row) => ({ date: toYmd(row.date), body_part: row.bodyPart }))),
+    "", "# workout_sets",
+    rowsToCsv(["date", "exercise_id", "exercise", "tags", "main", "set", "weight_kg", "reps", "settings"], sessions.flatMap((session) =>
+      readEntries(session.entries).flatMap((entry) => entry.sets.map((set, index) => ({ date: toYmd(session.date), exercise_id: entry.id, exercise: entry.name,
+        tags: entry.tags.join("|"), main: entry.isMain, set: index + 1, weight_kg: set.weight, reps: set.reps, settings: JSON.stringify(entry.settings) }))))),
+    "", "# workout_sessions",
+    rowsToCsv(["date", "note", "entries_json"], sessions.map((session) => ({ date: toYmd(session.date), note: session.note, entries_json: JSON.stringify(session.entries) }))),
+    "", "# workout_routines",
+    rowsToCsv(["name", "entries_json"], routines.map((routine) => ({ name: routine.name, entries_json: JSON.stringify(routine.entries) }))),
+    "", "# custom_exercises",
+    rowsToCsv(["id", "name", "tags", "equipment"], exercises.map((exercise) => ({ ...exercise, tags: exercise.tags.join("|") }))),
+    "", "# exercise_settings",
+    rowsToCsv(["exercise_id", "settings_json"], preferences.map((preference) => ({ exercise_id: preference.exerciseId, settings_json: JSON.stringify(preference.settings) })))
   ].join("\n");
 
   return new NextResponse(merged, {

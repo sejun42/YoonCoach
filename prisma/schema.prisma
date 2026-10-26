@@ -54,6 +54,7 @@ enum BodyPart {
   arms
   biceps
   triceps
+  core
 }
 
 model User {
@@ -66,6 +67,10 @@ model User {
   weighIns          WeighIn[]
   dailyCheckins     DailyCheckin[]
   workoutBodyParts  WorkoutBodyPartLog[]
+  workoutSessions  WorkoutSession[]
+  workoutRoutines  WorkoutRoutine[]
+  customExercises  CustomExercise[]
+  exercisePreferences ExercisePreference[]
   coachingLogs      CoachingLog[]
   pushSubscriptions PushSubscription[]
   settings          UserSetting?
@@ -151,6 +156,53 @@ model WorkoutBodyPartLog {
   @@unique([userId, date, bodyPart])
   @@index([userId, date])
   @@index([userId, bodyPart, date])
+}
+
+model WorkoutSession {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  entries   Json
+  note      String   @default("")
+  revision  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model WorkoutRoutine {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  entries   Json
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+}
+
+model CustomExercise {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  tags      String[]
+  equipment String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+}
+
+model ExercisePreference {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  settings   Json
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
 }
 
 model CoachingLog {

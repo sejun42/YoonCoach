@@ -59,7 +59,7 @@ test("paste, preview, retry, tab retention, confirmed replacement, editing, and 
   await page.getByRole("button", { name: "마감 저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "저장하지 못했습니다" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "주 메뉴" });
-  await nav.getByRole("link", { name: "부위", exact: true }).click();
+  await nav.getByRole("link", { name: "운동", exact: true }).click();
   await nav.getByRole("link", { name: "체중", exact: true }).click();
   await expect(input).toHaveValue(line);
   await expect(page.getByLabel("지방 섭취", { exact: true })).toHaveValue("50.5");

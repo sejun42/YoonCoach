@@ -9,6 +9,13 @@
 
 ---
 
+## October 2026 Workout Journal
+
+Calendar dates now open a full workout journal with exercise sets, editable body
+tags, machine settings, personal routines, and exercise-specific progress charts.
+See [workout journal notes](docs/2026-10-workout-journal.md) for behavior, data
+migration, and verification instructions.
+
 ## September 2026 Update
 
 The main app now focuses on three tabs: weight, workout body parts, and settings.

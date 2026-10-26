@@ -1,6 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { createServer } from "pglite-server";
-import { exec, execFileSync, spawn } from "node:child_process";
+import { exec, execFile, execFileSync, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import assert from "node:assert/strict";
 
@@ -10,7 +10,8 @@ const schema = execFileSync(process.execPath, [
   "node_modules/prisma/build/index.js", "migrate", "diff", "--from-empty", "--to-schema-datamodel", "prisma/schema.prisma", "--script"
 ], { encoding: "utf8" });
 // Recreate the deployed enum before this change, then apply the production upgrade twice.
-await database.exec(schema.replace(", 'biceps', 'triceps'", ""));
+await database.exec(schema.replace(", 'biceps', 'triceps'", "").replace(", 'core'", ""));
+await database.exec('DROP TABLE "WorkoutSession", "WorkoutRoutine", "CustomExercise", "ExercisePreference";');
 await database.exec(`
   ALTER TABLE "DailyCheckin"
     ALTER COLUMN "adherenceStatus" SET NOT NULL,
@@ -61,8 +62,11 @@ const databaseUrl = "postgresql://postgres:postgres@127.0.0.1:55432/postgres?con
 const testEnv = { ...process.env, AUTH_SECRET: "local-e2e-secret-only", DATABASE_URL: databaseUrl, DIRECT_URL: databaseUrl };
 try {
   // Exercise the exact deploy command, not just its SQL, against the isolated database.
-  await promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 20000 });
-  await promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 20000 });
+  const upgrade = () => process.env.npm_execpath
+    ? promisify(execFile)(process.execPath, [process.env.npm_execpath, "run", "db:upgrade"], { env: testEnv, timeout: 30000 })
+    : promisify(exec)("npm run db:upgrade", { env: testEnv, timeout: 30000 });
+  await upgrade();
+  await upgrade();
   assert.deepEqual((await database.query('SELECT * FROM "WorkoutBodyPartLog" ORDER BY "id"')).rows, before);
   const checkinColumns = Object.keys(beforeCheckins[0]).map((key) => '"' + key + '"').join(',');
   assert.deepEqual((await database.query('SELECT ' + checkinColumns + ' FROM "DailyCheckin" ORDER BY "id"')).rows, beforeCheckins);

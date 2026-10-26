@@ -8,12 +8,13 @@ import type { MouseEvent, ReactNode } from "react";
 
 export const trackerTabs = [
   { href: "/weights", label: "체중", icon: Scale },
-  { href: "/body-parts", label: "부위", icon: Dumbbell },
+  { href: "/body-parts", label: "운동", icon: Dumbbell },
   { href: "/settings", label: "설정", icon: Settings2 }
 ] as const;
 
 export default function AppShell({ children, onNavigate }: { children: ReactNode; onNavigate?: (href: string) => void }) {
   const pathname = usePathname();
+  const activePath = pathname.startsWith("/workouts/") ? "/body-parts" : pathname;
   function navigate(event: MouseEvent<HTMLAnchorElement>, href: string) {
     if (!onNavigate || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
@@ -33,8 +34,8 @@ export default function AppShell({ children, onNavigate }: { children: ReactNode
         <div className="nav-inner">
           {trackerTabs.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} prefetch={onNavigate ? false : undefined} onClick={(event) => navigate(event, href)}
-              aria-current={pathname === href ? "page" : undefined} className="nav-link">
-              <Icon size={21} strokeWidth={pathname === href ? 2.3 : 1.7} aria-hidden="true" />
+              aria-current={activePath === href ? "page" : undefined} className="nav-link">
+              <Icon size={21} strokeWidth={activePath === href ? 2.3 : 1.7} aria-hidden="true" />
               <span>{label}</span>
             </Link>
           ))}

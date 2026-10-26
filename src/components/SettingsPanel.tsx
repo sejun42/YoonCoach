@@ -141,7 +141,7 @@ export default function SettingsPanel() {
     </section>
     <section className="section-block">
       <div className="section-heading"><h2>기록 관리</h2></div>
-      <a className="settings-link" href="/api/export/csv" download><span><Download size={18} />전체 기록 다운로드<small>체중 · 운동 부위 · 식단 · 코칭</small></span><ArrowUpRight size={18} /></a>
+      <a className="settings-link" href="/api/export/csv" download><span><Download size={18} />전체 기록 다운로드<small>체중 · 운동 세트 / 루틴 · 식단 · 코칭</small></span><ArrowUpRight size={18} /></a>
       <Link className="settings-link" href="/checkins" prefetch={false}><span>이전 식단 · 체크인 기록</span><ArrowUpRight size={18} /></Link>
       <Link className="settings-link" href="/coaching" prefetch={false}><span>이전 코칭 기록</span><ArrowUpRight size={18} /></Link>
     </section>

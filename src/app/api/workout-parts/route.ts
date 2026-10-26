@@ -4,6 +4,8 @@ import { parseJson, requireAuth, jsonError } from "@/lib/api";
 import { dateFromYmd, toYmd } from "@/lib/date";
 import { db } from "@/lib/db";
 import { calendarDateSchema, workoutPartsSchema } from "@/lib/schemas";
+import { representativeParts } from "@/lib/workouts";
+import { readEntries } from "@/lib/services/workouts";
 
 async function lastDates(client: Prisma.TransactionClient, userId: string, today: string) {
   const groups = await client.workoutBodyPartLog.groupBy({
@@ -25,21 +27,27 @@ export async function GET(req: NextRequest) {
     (to && !calendarDateSchema.safeParse(to).success) || (from && to && from > to)) {
     return jsonError("Invalid date range");
   }
-  const where: Prisma.WorkoutBodyPartLogWhereInput = { userId: auth.userId };
-  if (month) {
-    const start = dateFromYmd(month + "-01");
-    const end = new Date(start);
-    end.setUTCMonth(end.getUTCMonth() + 1);
-    where.date = { gte: start, lt: end };
-  } else if (from || to) {
-    where.date = { ...(from ? { gte: dateFromYmd(from) } : {}), ...(to ? { lte: dateFromYmd(to) } : {}) };
-  }
-  const [logs, last_dates] = await Promise.all([
-    db.workoutBodyPartLog.findMany({ where, orderBy: [{ date: "asc" }, { bodyPart: "asc" }], select: { id: true, date: true, bodyPart: true } }),
-    lastDates(db, auth.userId, today)
+  const [legacy, sessions] = await Promise.all([
+    db.workoutBodyPartLog.findMany({ where: { userId: auth.userId }, orderBy: [{ date: "asc" }, { bodyPart: "asc" }], select: { id: true, date: true, bodyPart: true } }),
+    db.workoutSession.findMany({ where: { userId: auth.userId }, select: { id: true, date: true, entries: true } })
   ]);
+  // Session tags are derived, so historical manual records remain intact in their original table.
+  const byDate = new Map<string, { id: string; date: string; body_part: typeof legacy[number]["bodyPart"] }[]>();
+  for (const log of legacy) {
+    const date = toYmd(log.date);
+    byDate.set(date, [...(byDate.get(date) ?? []), { id: log.id, date, body_part: log.bodyPart }]);
+  }
+  for (const session of sessions) {
+    const parts = representativeParts(readEntries(session.entries));
+    if (parts.length) byDate.set(toYmd(session.date), parts.map((body_part) => ({ id: session.id + body_part, date: toYmd(session.date), body_part })));
+  }
+  const allLogs = [...byDate.values()].flat().sort((a, b) => a.date.localeCompare(b.date));
+  const latest = new Map<string, string>();
+  for (const log of allLogs) if (log.date <= today) latest.set(log.body_part, log.date);
+  const logs = allLogs.filter((log) => month ? log.date.startsWith(month) : (!from || log.date >= from) && (!to || log.date <= to));
+  const last_dates = [...latest].map(([body_part, date]) => ({ body_part, date }));
   return NextResponse.json({
-    ok: true, month, logs: logs.map((log) => ({ id: log.id, date: toYmd(log.date), body_part: log.bodyPart })), last_dates
+    ok: true, month, logs, last_dates
   }, { headers: { "Cache-Control": "private, no-store" } });
 }
 

@@ -20,6 +20,8 @@ export async function requestJson<T>(url: string, options?: RequestInit): Promis
     throw new Error("다시 로그인해 주세요.");
   }
   if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    if (typeof result?.error === "string") throw new Error(result.error);
     throw new Error("요청을 처리하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.");
   }
   return response.json() as Promise<T>;

@@ -3,12 +3,13 @@ import { parseJson, requireAuth, jsonError } from "@/lib/api";
 import { dateFromYmd } from "@/lib/date";
 import { db } from "@/lib/db";
 import { calendarDateSchema } from "@/lib/schemas";
-import { workoutSaveSchema } from "@/lib/workouts";
+import { sameWorkout, workoutSaveSchema } from "@/lib/workouts";
 import { canonicalEntries, readEntries } from "@/lib/services/workouts";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
+  if (req.headers.get("x-workout-owner") && req.headers.get("x-workout-owner") !== auth.userId) return jsonError("로그인 계정이 변경되었습니다. 다시 열어 주세요.", 403);
   const parsed = calendarDateSchema.safeParse(req.nextUrl.searchParams.get("date"));
   if (!parsed.success) return jsonError("올바른 날짜를 선택해 주세요.");
   const date = dateFromYmd(parsed.data);
@@ -23,8 +24,9 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
+  if (req.headers.get("x-workout-owner") && req.headers.get("x-workout-owner") !== auth.userId) return jsonError("로그인 계정이 변경되었습니다. 다시 열어 주세요.", 403);
   const parsed = workoutSaveSchema.safeParse(await parseJson(req));
-  if (!parsed.success) return jsonError("태그는 최대 2개, 세트의 무게와 횟수는 함께 입력해 주세요. (무게 0–2000kg, 횟수 1–1000)");
+  if (!parsed.success) return jsonError("태그는 최대 2개, 무게는 0–2000kg, 횟수는 1–1000 사이의 정수로 입력해 주세요.");
   const entries = await canonicalEntries(auth.userId, parsed.data.entries);
   if (!entries) return jsonError("사용할 수 없는 운동 종목입니다.");
   const { revision, note } = parsed.data;
@@ -32,7 +34,12 @@ export async function PUT(req: NextRequest) {
   const result = await db.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${auth.userId}), hashtext(${parsed.data.date}))::text`;
     const previous = await tx.workoutSession.findUnique({ where: { userId_date: { userId: auth.userId, date } } });
-    if ((previous?.revision ?? 0) !== revision) return null;
+    if ((previous?.revision ?? 0) !== revision) {
+      // A response may be lost after the commit. Repeating the same payload is
+      // successful, but never use a stale revision to overwrite different data.
+      const prior = { date: parsed.data.date, entries: readEntries(previous?.entries), note: previous?.note ?? "", revision: previous?.revision ?? 0 };
+      return sameWorkout(prior, { ...parsed.data, entries }) ? prior : null;
+    }
     const saved = await tx.workoutSession.upsert({ where: { userId_date: { userId: auth.userId, date } },
       create: { userId: auth.userId, date, entries, note }, update: { entries, note, revision: { increment: 1 } } });
     const previousEntries = readEntries(previous?.entries);

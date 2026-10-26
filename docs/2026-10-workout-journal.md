@@ -8,8 +8,9 @@ calendar. Weight and nutrition screens retain their existing storage and behavio
 - Brand/model-specific catalog entries retain stable IDs. Includes the supplied
   gym equipment, extra exercises for each region, and barbell/dumbbell rows.
 - Each exercise starts with one blank set; add up to 50 sets and 60 exercises.
-  Record kilograms (0–2000) and integer reps (1–1000) together. Empty sets can be
-  saved for planning but do not contribute to statistics. For bodyweight exercises,
+  Record kilograms (0–2000) and integer reps (1–1000). Empty and partially entered
+  sets are saved but do not contribute to statistics. Each row after the first
+  has a copy button for the preceding row's weight and reps. For bodyweight exercises,
   record added load, using 0 kg when unweighted. Keep a consistent convention for
   dumbbells and unilateral exercises; different machines are separate histories.
 - One or two editable body-part tags per exercise. Main exercises can be marked.
@@ -23,9 +24,18 @@ calendar. Weight and nutrition screens retain their existing storage and behavio
 - Save the exercise order, tags, main flags, and number of sets as a named routine.
   Loading a routine starts blank sets with the user's saved settings. Users can
   replace a routine by saving its existing name or delete it without deleting logs.
-- Drafts survive in-app navigation within the authenticated layout. Reloading or
-  closing an unsaved editor triggers the browser's unsaved-changes warning. Saving
-  persists to PostgreSQL. This is not an offline recorder.
+- Inputs are immediately staged in account/date-scoped local storage, then saved
+  to PostgreSQL after five seconds without changes. The queue remains active
+  across in-app navigation and attempts a save when the page becomes hidden.
+  Each date has one in-flight write; later keystrokes keep their own draft and
+  receive the acknowledged revision before the next save. Manual save remains.
+- Failed requests keep local drafts and retry after 15 seconds or reconnect.
+  Reloads restore partial and invalid inputs too. Recovered drafts and ambiguous
+  writes reconcile against the server before retrying; different remote edits
+  stop autosave with a conflict message and an exportable local draft. Identical
+  retries are idempotent. Storage failures are visible and enable an unload
+  warning. Clearing browser storage removes local recovery; loading the app
+  itself still requires connectivity. Older versions had no durable draft backup.
 
 ## Progress
 

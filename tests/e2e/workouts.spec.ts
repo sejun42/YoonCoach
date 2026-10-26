@@ -54,7 +54,7 @@ test("API rejects malformed and foreign entries, handles conflicts, and isolates
   for (const invalid of [
     { ...entry, tags: ["chest", "back", "shoulders"] }, { ...entry, tags: ["chest", "chest"] },
     { ...entry, sets: [{ weight: -1, reps: 10 }] }, { ...entry, sets: [{ weight: 20, reps: 1.2 }] },
-    { ...entry, sets: [{ weight: 20, reps: null }] }, { ...entry, id: "unknown" }
+    { ...entry, sets: [{ weight: 20, reps: 0 }] }, { ...entry, id: "unknown" }
   ]) expect((await request.put("/api/workouts", { headers: auth(), data: { date: "2026-10-10", revision: 0, note: "", entries: [invalid] } })).status()).toBe(400);
   const saved = await saveDay(request, "2026-10-10", [entry]);
   expect(saved.session.entries[0].sets[0].weight).toBe(42.5);

@@ -16,7 +16,7 @@ const screens = {
   "/settings": SettingsPanel
 };
 
-export default function TrackerWorkspace({ children }: { children: ReactNode }) {
+export default function TrackerWorkspace({ children, userId }: { children: ReactNode; userId: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [visited, setVisited] = useState<string[]>([pathname]);
@@ -42,7 +42,7 @@ export default function TrackerWorkspace({ children }: { children: ReactNode }) 
   return (
     <SWRConfig value={{ provider: () => cache, fetcher: requestJson, dedupingInterval: 30000,
       focusThrottleInterval: 60000, errorRetryCount: 2, revalidateOnReconnect: true }}>
-      <WorkoutDrafts><AppShell onNavigate={navigate}>
+      <WorkoutDrafts userId={userId}><AppShell onNavigate={navigate}>
         {trackerTabs.map(({ href, label }) => {
           const Screen = screens[href];
           return (

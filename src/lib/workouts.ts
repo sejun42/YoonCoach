@@ -6,8 +6,8 @@ export const tagsSchema = z.array(z.enum(exerciseTagKeys)).min(1).max(2).refine(
 export const machineSettingsSchema = z.array(z.object({ label: z.string().trim().min(1).max(40), value: z.string().trim().max(160) })).max(12)
   .refine((settings) => new Set(settings.map((item) => item.label)).size === settings.length, "설정 이름은 중복할 수 없습니다.");
 export const exerciseSchema = z.object({ id: z.string().min(1).max(180), name: z.string().trim().min(1).max(100), tags: tagsSchema, equipment: z.enum(equipmentKeys) });
-export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable() })
-  .refine((set) => (set.weight === null) === (set.reps === null), "무게와 횟수를 함께 입력해 주세요.");
+// Autosave must preserve a half-entered set too. Only complete sets enter metrics.
+export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable() });
 export const workoutEntrySchema = exerciseSchema.extend({ isMain: z.boolean(), sets: z.array(workoutSetSchema).min(1).max(50), settings: machineSettingsSchema });
 export const workoutEntriesSchema = z.array(workoutEntrySchema).max(60).refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length);
 export const workoutSaveSchema = z.object({ date: calendarDateSchema, revision: z.number().int().nonnegative(), entries: workoutEntriesSchema, note: z.string().trim().max(2000) });
@@ -17,6 +17,9 @@ export type WorkoutSet = z.infer<typeof workoutSetSchema>;
 export type MachineSetting = z.infer<typeof machineSettingsSchema>[number];
 export type WorkoutEntry = z.infer<typeof workoutEntrySchema>;
 export type WorkoutSession = { date: string; revision: number; entries: WorkoutEntry[]; note: string };
+export function sameWorkout(a: WorkoutSession, b: WorkoutSession) {
+  return a.date === b.date && a.note.trim() === b.note.trim() && JSON.stringify(a.entries) === JSON.stringify(b.entries);
+}
 export type Routine = { id: string; name: string; entries: WorkoutEntry[]; preset?: boolean };
 export type WorkoutHistory = { date: string; entry: WorkoutEntry };
 export type WorkoutLibrary = { exercises: Exercise[]; preferences: Record<string, MachineSetting[]>; routines: Routine[] };

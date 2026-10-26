@@ -13,6 +13,10 @@ export type Plan = {
 };
 export type PlanResponse = { ok: true; plan: Plan | null };
 
+export class RequestError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
+
 export async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000), ...options });
   if (response.status === 401) {
@@ -21,8 +25,8 @@ export async function requestJson<T>(url: string, options?: RequestInit): Promis
   }
   if (!response.ok) {
     const result = await response.json().catch(() => null);
-    if (typeof result?.error === "string") throw new Error(result.error);
-    throw new Error("요청을 처리하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.");
+    if (typeof result?.error === "string") throw new RequestError(result.error, response.status);
+    throw new RequestError("요청을 처리하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.", response.status);
   }
   return response.json() as Promise<T>;
 }

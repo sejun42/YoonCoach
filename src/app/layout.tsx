@@ -5,7 +5,8 @@ import PWARegister from "@/components/PWARegister";
 export const metadata: Metadata = {
   title: "YoonCoach | 나의 운동 기록",
   description: "체중 변화와 운동 부위를 기록하는 나만의 트래커",
-  manifest: "/manifest.webmanifest"
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon-lift.svg", apple: "/apple-touch-icon-lift.png" }
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#090f1c" };

@@ -31,7 +31,7 @@ export default function AuthForm({ returnTo }: { returnTo?: string }) {
     finally { setLoading(false); }
   }
   return <section className="auth-wrap">
-    <div className="brand"><Image src="/icon.svg" alt="" width={34} height={34} priority /><span>YoonCoach</span></div>
+    <div className="brand"><Image src="/icon-lift.svg" alt="" width={34} height={34} priority /><span>YoonCoach</span></div>
     <h1>{mode === "login" ? "나의 기록으로 돌아가기" : "새로운 기록 시작하기"}</h1>
     <div className="segmented" role="group" aria-label="계정 접속">
       <button type="button" aria-pressed={mode === "login"} disabled={loading} onClick={() => { setMode("login"); setMessage(""); }}>로그인</button>

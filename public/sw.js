@@ -1,5 +1,5 @@
-const CACHE = "yooncoach-static-v3";
-const PRECACHE = ["/icon.svg"];
+const CACHE = "yooncoach-static-v4";
+const PRECACHE = ["/icon-lift.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -16,7 +16,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   // Only immutable assets are cached. Authenticated HTML, RSC and API data stay on the network.
-  if (!url.pathname.startsWith("/_next/static/") && url.pathname !== "/icon.svg") return;
+  if (!url.pathname.startsWith("/_next/static/") && url.pathname !== "/icon-lift.svg") return;
   event.respondWith(caches.open(CACHE).then(async (cache) => {
     const cached = await cache.match(request);
     if (cached) return cached;
@@ -31,7 +31,7 @@ self.addEventListener("push", (event) => {
   let payload = defaults;
   if (event.data) { try { payload = { ...defaults, ...JSON.parse(event.data.text()) }; } catch { payload = defaults; } }
   event.waitUntil(self.registration.showNotification(payload.title, {
-    body: payload.body, icon: "/icon.svg", badge: "/icon.svg", data: { url: payload.url || "/" }
+    body: payload.body, icon: "/icon-lift.svg", badge: "/icon-lift.svg", data: { url: payload.url || "/" }
   }));
 });
 

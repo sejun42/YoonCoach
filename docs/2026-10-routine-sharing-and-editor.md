@@ -19,7 +19,13 @@ Migration `20261027000000_routine_shares` is additive and repeatable. Existing w
 
 ## Visual design
 
-The app uses a cobalt-accented dark palette with distinct page, card and input surfaces. Dialogs, charts, tooltips, navigation, auth, and PWA theme colours are updated. Three SVG logo concepts live at `/logo-concepts/index.html`; the current icon is retained until the user chooses a design.
+The app uses a cobalt-accented dark palette with distinct page, card and input surfaces. Dialogs, charts, tooltips, navigation, auth, and PWA theme colours are updated. Three SVG logo concepts live at `/logo-concepts/index.html`. The user selected option 02 (diagonal dumbbell); `icon-lift.svg` is used in the header, auth screen, favicon and notifications. PNG install icons (192/512), a separate maskable icon and a 180px Apple touch icon are included. Versioned filenames and service worker cache v4 replace the previous icon cache.
+
+### Compact swipe-to-delete sets
+
+Set rows are 40px tall with no arrow under normal set numbers; mini/drop labels remain. The copy-above action remains on the right. A horizontal left drag moves the entire input row and reveals a red trash/delete action underneath. Releasing past halfway snaps it open; a right drag, Escape or outside tap closes it. Swiping alone never deletes. Vertical gestures retain normal page scrolling, and taps still edit fields or open the set-type dialog. A minimum of one set is retained, matching existing behaviour.
+
+Keyboard users can focus the row, press Left (or Delete) to reveal the action, then Tab/Enter to delete. Inputs retain their arrow-key behaviour. The deleted row feeds the same local-draft/5-second server autosave flow as all other edits. Reduced-motion preferences disable the snap transition.
 
 ## Validation
 

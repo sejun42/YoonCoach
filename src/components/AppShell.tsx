@@ -24,7 +24,7 @@ export default function AppShell({ children, onNavigate }: { children: ReactNode
     <div className="app-shell">
       <header className="app-header">
         <Link href="/weights" prefetch={onNavigate ? false : undefined} onClick={(event) => navigate(event, "/weights")} className="brand">
-          <Image src="/icon.svg" width={30} height={30} alt="" priority />
+          <Image src="/icon-lift.svg" width={30} height={30} alt="" priority />
           <span>YoonCoach</span>
         </Link>
         <span className="brand-note">나의 운동 기록</span>

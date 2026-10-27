@@ -12,7 +12,8 @@ Migration `20261027000000_routine_shares` is additive and repeatable. Existing w
 
 ## Recording
 
-- **교체** on each exercise opens the same keyboard-aware picker. It replaces the exercise at the same index, keeps the main flag and set/type template, and applies the replacement's own saved machine settings. Entered values require confirmation before clearing. The saved routine changes only if the user explicitly saves that routine again.
+- Each card has icon-only progress, replace and add actions with accessible names and hover titles. **+** opens the existing picker and inserts exercises directly below that card in selection order, preserving all later records. The bottom add button still appends. Both respect the 60-exercise limit and use the same five-second autosave.
+- The **replace arrows** on each exercise open the same keyboard-aware picker. It replaces the exercise at the same index, keeps the main flag and set/type template, and applies the replacement's own saved machine settings. Entered values require confirmation before clearing. The saved routine changes only if the user explicitly saves that routine again.
 - Moving a card animates its old-to-new position for 320ms, including its neighbour. Reduced-motion preferences disable the movement. An accessible live announcement reports the new position.
 - Tap a set number for **일반 / 미니세트 / 드랍세트**. A segment is one row; type labels do not invent or aggregate extra reps. Each completed row continues to count once in existing volume/representative-part calculations. Optional `type` keeps all preexisting sets valid as normal sets.
 - Set types survive five-second autosave, local recovery, manual save, routine templates, sharing, detailed history and CSV exports. Each row's copy action inserts its weight, reps and type as a new row directly below; later rows are preserved, and edits to the copy do not change its source.

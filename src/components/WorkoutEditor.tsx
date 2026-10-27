@@ -25,6 +25,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
   const saving = saveState?.kind === "saving";
   const [picker, setPicker] = useState(false);
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [insertingAfterId, setInsertingAfterId] = useState<string | null>(null);
   const [shared, setShared] = useState<{ id: string; name: string; path: string } | null>(null);
   const [moveMessage, setMoveMessage] = useState("");
   const [routineDialog, setRoutineDialog] = useState<"load" | "save" | null>(null);
@@ -65,7 +66,11 @@ export default function WorkoutEditor({ date }: { date: string }) {
       setReplacingId(null); setPicker(false); return;
     }
     if (entries.some((entry) => entry.id === exercise.id) || entries.length >= 60) return;
-    edit([...entries, newEntry(exercise, library?.preferences[exercise.id])]);
+    const afterIndex = insertingAfterId ? entries.findIndex((entry) => entry.id === insertingAfterId) : -1;
+    const insertionIndex = afterIndex >= 0 ? afterIndex + 1 : entries.length;
+    edit([...entries.slice(0, insertionIndex), newEntry(exercise, library?.preferences[exercise.id]), ...entries.slice(insertionIndex)]);
+    // Keep multiple selections in selection order at the chosen position.
+    if (insertingAfterId) setInsertingAfterId(exercise.id);
   }
   async function save() {
     setMessage(""); setFailed(false); await saveDraft();
@@ -121,12 +126,13 @@ export default function WorkoutEditor({ date }: { date: string }) {
         {!entries.length && <div className="workout-empty"><span><Dumbbell size={28} /></span><h2>오늘의 첫 세트를 시작하세요.</h2><p>종목을 추가하거나 나만의 루틴을 불러오세요.<br />각 운동은 1세트부터 시작합니다.</p></div>}
         {!!entries.length && <p className="workout-help">세트를 왼쪽으로 밀면 삭제 버튼이 나타납니다.<span id="set-swipe-help" className="sr-only">키보드에서는 세트 행을 선택하고 왼쪽 화살표를 누른 뒤 Tab으로 삭제 버튼에 이동하세요. 오른쪽 화살표나 Escape로 닫습니다.</span></p>}
         <div className="workout-cards">{entries.map((entry, index) => <WorkoutExerciseCard key={entry.id} entry={entry} index={index} count={entries.length} date={date} today={today} onChange={updateEntry}
-          onReplace={() => { setReplacingId(entry.id); setPicker(true); }}
+          onReplace={() => { setInsertingAfterId(null); setReplacingId(entry.id); setPicker(true); }}
+          canAdd={!!library && entries.length < 60} onAddAfter={() => { setReplacingId(null); setInsertingAfterId(entry.id); setPicker(true); }}
           onSettings={() => setSettingsId(entry.id)} onProgress={() => { setGraphId(entry.id); document.getElementById("workout-progress")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
           onRemove={() => { if (recordedSets(entry).length && !window.confirm(entry.name + "의 세트 기록을 삭제할까요?")) return; edit(entries.filter((item) => item.id !== entry.id)); }}
           onMove={(direction) => { const next = [...entries]; [next[index], next[index + direction]] = [next[index + direction], next[index]]; edit(next); setMoveMessage(entry.name + " · " + (index + direction + 1) + "번째로 이동했습니다."); }} />)}</div>
         <p className="sr-only" aria-live="polite">{moveMessage}</p>
-        <button type="button" className="add-exercise" disabled={!library || entries.length >= 60} onClick={() => { setReplacingId(null); setPicker(true); }}><Plus size={20} />운동 추가<span>부위별 종목 찾기</span></button>
+        <button type="button" className="add-exercise" disabled={!library || entries.length >= 60} onClick={() => { setReplacingId(null); setInsertingAfterId(null); setPicker(true); }}><Plus size={20} />운동 추가<span>부위별 종목 찾기</span></button>
         <label className="workout-note">오늘의 메모<textarea className="field" rows={2} maxLength={2000} placeholder="컨디션, 자세, 다음 운동에서 기억할 것" value={session?.note ?? ""} onChange={(event) => edit(entries, event.target.value)} /></label>
         <div className="workout-savebar"><div><span className="save-state">{saving ? "서버에 저장 중 · 계속 입력해도 됩니다" : saveState?.kind === "error" ? "임시 입력 유지 · 15초 후 재시도" : dirty ? "입력을 멈추면 5초 후 자동 저장" : "변경 사항은 자동으로 저장됩니다"}</span>{dirty && <button className="text-button" type="button" disabled={saving} onClick={() => { if (window.confirm("저장 전 변경을 버리고 저장된 기록으로 돌아갈까요?")) { setDraft(null); setMessage(""); } }}>변경 취소</button>}</div>
           <button className="btn btn-primary" type="submit" disabled={!dirty || saving}><Check size={17} />{saving ? "저장 중" : "운동 기록 저장"}</button></div>
@@ -137,7 +143,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
       </>}</p>}
     </form>
     <WorkoutProgress exercises={exercises} selected={selectedGraph} onSelect={setGraphId} today={today} />
-    {picker && library && <ExercisePicker exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); }} />}
+    {picker && library && <ExercisePicker exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); setInsertingAfterId(null); }} />}
     {shared && <RoutineShareDialog {...shared} onClose={() => setShared(null)} />}
     {settingsEntry && <MachineSettings name={settingsEntry.name} settings={settingsEntry.settings} onApply={(settings) => updateEntry({ ...settingsEntry, settings })} onClose={() => setSettingsId(null)} />}
     {routineDialog && <WorkoutDialog title={routineDialog === "load" ? "루틴 불러오기" : "나의 루틴으로 저장"} onClose={() => { if (!routineBusy) setRoutineDialog(null); }}>

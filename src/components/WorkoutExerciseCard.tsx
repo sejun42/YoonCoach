@@ -7,8 +7,8 @@ import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import { useExerciseHistory } from "./WorkoutProgress";
 import SwipeSetRow from "./SwipeSetRow";
 
-export default function WorkoutExerciseCard({ entry, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace }: {
-  entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void;
+export default function WorkoutExerciseCard({ entry, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd }: {
+  entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean;
 }) {
   const [editingTags, setEditingTags] = useState(false);
   const [setIndexToEdit, setSetIndexToEdit] = useState<number | null>(null);
@@ -57,7 +57,10 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
     </div>
     <button type="button" className="add-set" disabled={entry.sets.length >= 50} onClick={() => onChange({ ...entry, sets: [...entry.sets, blankSet()] })}><Plus size={16} />세트 추가</button>
     {!!entry.settings.filter((item) => item.value).length && <button className="settings-summary" type="button" onClick={onSettings}><Info size={13} />{entry.settings.filter((item) => item.value).map((item) => item.label + " " + item.value).join(" · ")}</button>}
-    <div className="workout-card-footer"><div><button type="button" className="text-button" onClick={onProgress}><TrendingUp size={15} />성장 보기</button><button type="button" className="text-button replace-exercise" aria-label={entry.name + " 운동 교체"} onClick={onReplace}><ArrowLeftRight size={15} />교체</button></div><div>
+    <div className="workout-card-footer"><div>
+      <button type="button" className="icon-button" title="성장 보기" aria-label={entry.name + " 성장 보기"} onClick={onProgress}><TrendingUp size={17} /></button>
+      <button type="button" className="icon-button" title="운동 교체" aria-label={entry.name + " 운동 교체"} onClick={onReplace}><ArrowLeftRight size={17} /></button>
+      <button type="button" className="icon-button" title="바로 아래에 운동 추가" aria-label={entry.name + " 아래에 운동 추가"} disabled={!canAdd} onClick={onAddAfter}><Plus size={17} /></button></div><div>
       <button type="button" className="icon-button" aria-label={entry.name + " 위로 이동"} disabled={index === 0} onClick={() => onMove(-1)}><ArrowUp size={15} /></button>
       <button type="button" className="icon-button" aria-label={entry.name + " 아래로 이동"} disabled={index === count - 1} onClick={() => onMove(1)}><ArrowDown size={15} /></button>
       <button type="button" className="icon-button" aria-label={entry.name + " 운동 삭제"} onClick={onRemove}><Trash2 size={15} /></button></div></div>

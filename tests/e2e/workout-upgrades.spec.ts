@@ -115,6 +115,53 @@ test("replacement retains position and template, clears values only with confirm
   await expect(page.getByLabel("오늘의 메모")).toHaveValue("유지할 메모");
 });
 
+test("card add inserts selections below in order, preserves records, and resets to append after closing", async ({ page, request }) => {
+  const date = "2026-01-07";
+  const first = { ...bench(), sets: [{ weight: 80, reps: 8, type: "drop" as const }] };
+  const last = { ...fly(), sets: [{ weight: 45, reps: 12 }] };
+  const additions = exerciseCatalog.filter((exercise) => ![first.id, last.id].includes(exercise.id)).slice(0, 3);
+  await request.put("/api/workouts", { headers: auth(), data: { date, revision: 0, note: "기록 유지", entries: [first, last] } });
+  await signIn(page); await page.clock.install(); await page.goto("/workouts/" + date);
+  const card = page.getByRole("article", { name: first.name, exact: true });
+  for (const action of ["성장 보기", "운동 교체", "아래에 운동 추가"]) {
+    const button = card.getByRole("button", { name: first.name + " " + action, exact: true });
+    await expect(button).toBeVisible();
+    await expect(button).toHaveText("");
+  }
+  await card.getByRole("button", { name: first.name + " 아래에 운동 추가" }).click();
+  const picker = page.getByRole("dialog", { name: "운동 추가", exact: true });
+  for (const exercise of additions.slice(0, 2)) {
+    await picker.getByLabel("운동 검색").fill(exercise.name);
+    await picker.getByRole("button", { name: exercise.name + " 추가", exact: true }).click();
+    await expect(picker.getByRole("button", { name: exercise.name + " 추가됨", exact: true })).toBeDisabled();
+  }
+  await picker.getByRole("button", { name: "선택 완료", exact: true }).click();
+  await expect(page.locator(".workout-card h3")).toHaveText([first.name, additions[0].name, additions[1].name, last.name]);
+  await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("80");
+  await expect(page.getByRole("article", { name: last.name, exact: true }).getByLabel("1세트 횟수", { exact: true })).toHaveValue("12");
+  // Closing an unused insertion picker must also clear its target.
+  await card.getByRole("button", { name: first.name + " 아래에 운동 추가" }).click();
+  await picker.getByRole("button", { name: "선택 완료", exact: true }).click();
+  await page.locator(".add-exercise").click();
+  await picker.getByLabel("운동 검색").fill(additions[2].name);
+  await picker.getByRole("button", { name: additions[2].name + " 추가", exact: true }).click();
+  await picker.getByRole("button", { name: "선택 완료", exact: true }).click();
+  const names = [first.name, additions[0].name, additions[1].name, last.name, additions[2].name];
+  await expect(page.locator(".workout-card h3")).toHaveText(names);
+  await page.clock.runFor(5000);
+  await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
+  const stored = (await (await request.get("/api/workouts?date=" + date, { headers: auth() })).json()).session;
+  expect(stored.entries.map((entry: WorkoutEntry) => entry.name)).toEqual(names);
+  expect(stored.entries[0].sets).toEqual(first.sets);
+  expect(stored.entries[3].sets).toEqual(last.sets);
+  await page.reload();
+  await expect(page.locator(".workout-card h3")).toHaveText(names);
+  await expect(page.getByLabel("오늘의 메모")).toHaveValue("기록 유지");
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await card.screenshot({ path: "test-results/card-insert-icons-mobile.png" });
+});
+
 test("set type survives local recovery, autosave, routine loading and export; insertion copies source type", async ({ page, request }) => {
   const date = "2026-01-04";
   const entry = { ...bench(), sets: [{ weight: 60, reps: 8 }] };

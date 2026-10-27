@@ -62,7 +62,6 @@
 .workout-card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #293950; margin-top: 10px; }
 .workout-card-footer > div { display: flex; }
 .workout-card-footer .icon-button { width: 30px; flex-basis: 30px; }
-.workout-card-footer .text-button { padding-left: 0; }
 .workout-screen .text-button { display: inline-flex; gap: 5px; align-items: center; }
 .add-exercise { width: 100%; margin: 20px 0 24px; padding: 18px; background: var(--panel); border: 1px dashed #49678f; border-radius: 10px; color: var(--accent); display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
 .add-exercise > span { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: auto; }
@@ -462,7 +461,6 @@ label { font-size: 12px; color: #afbdd3; }
 .set-type-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-light); }
 .set-type-options strong, .set-type-options span { display: block; }
 .set-type-options span { font-size: 12px; color: var(--muted); margin-top: 6px; }
-.workout-card-footer .replace-exercise { padding-left: 8px; }
 .routine-share { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .routine-share canvas { align-self: center; max-width: 100%; height: auto !important; border-radius: 10px; }
 .routine-share h3 { text-align: center; overflow-wrap: anywhere; }

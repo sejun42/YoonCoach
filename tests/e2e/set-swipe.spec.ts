@@ -70,8 +70,10 @@ test("vertical scrolling, short drags and typing do not reveal or delete; keyboa
   await card.getByRole("button", { name: "2세트 유형: 드랍세트", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "2세트 유형" })).toBeVisible();
   await page.getByRole("button", { name: "닫기", exact: true }).click();
-  await card.getByRole("button", { name: "3세트에 바로 위 세트 복사" }).click();
+  await card.getByRole("button", { name: "2세트 복사해 아래에 추가" }).click();
+  await expect(card.locator(".set-row")).toHaveCount(4);
   await expect(card.getByLabel("3세트 무게", { exact: true })).toHaveValue("57.5");
+  await expect(card.getByLabel("4세트 무게", { exact: true })).toHaveValue("50");
   const row = card.locator(".swipe-set").nth(1);
   await row.focus(); await page.keyboard.press("ArrowLeft");
   await expect(row).toHaveAttribute("data-open", "true");
@@ -79,7 +81,7 @@ test("vertical scrolling, short drags and typing do not reveal or delete; keyboa
   await expect(row.getByRole("button", { name: "2세트 삭제" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(row).toHaveAttribute("data-open", "false");
-  for (let count = 3; count > 1; count--) {
+  for (let count = 4; count > 1; count--) {
     const first = card.locator(".swipe-set").first();
     await first.focus(); await page.keyboard.press("ArrowLeft");
     await first.getByRole("button", { name: "1세트 삭제" }).click();

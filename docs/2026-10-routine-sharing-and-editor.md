@@ -15,7 +15,7 @@ Migration `20261027000000_routine_shares` is additive and repeatable. Existing w
 - **교체** on each exercise opens the same keyboard-aware picker. It replaces the exercise at the same index, keeps the main flag and set/type template, and applies the replacement's own saved machine settings. Entered values require confirmation before clearing. The saved routine changes only if the user explicitly saves that routine again.
 - Moving a card animates its old-to-new position for 320ms, including its neighbour. Reduced-motion preferences disable the movement. An accessible live announcement reports the new position.
 - Tap a set number for **일반 / 미니세트 / 드랍세트**. A segment is one row; type labels do not invent or aggregate extra reps. Each completed row continues to count once in existing volume/representative-part calculations. Optional `type` keeps all preexisting sets valid as normal sets.
-- Set types survive five-second autosave, local recovery, manual save, routine templates, sharing, detailed history and CSV exports. Copy-above continues to copy only weight/reps, preserving the target row's type.
+- Set types survive five-second autosave, local recovery, manual save, routine templates, sharing, detailed history and CSV exports. Each row's copy action inserts its weight, reps and type as a new row directly below; later rows are preserved, and edits to the copy do not change its source.
 
 ## Visual design
 
@@ -23,7 +23,7 @@ The app uses a cobalt-accented dark palette with distinct page, card and input s
 
 ### Compact swipe-to-delete sets
 
-Set rows are 40px tall with no arrow under normal set numbers; mini/drop labels remain. The copy-above action remains on the right. A horizontal left drag moves the entire input row and reveals a red trash/delete action underneath. Releasing past halfway snaps it open; a right drag, Escape or outside tap closes it. Swiping alone never deletes. Vertical gestures retain normal page scrolling, and taps still edit fields or open the set-type dialog. A minimum of one set is retained, matching existing behaviour.
+Set rows are 40px tall with no arrow under normal set numbers; mini/drop labels remain. The copy-and-insert action remains on the right. A horizontal left drag moves the entire input row and reveals a red trash/delete action underneath. Releasing past halfway snaps it open; a right drag, Escape or outside tap closes it. Swiping alone never deletes. Vertical gestures retain normal page scrolling, and taps still edit fields or open the set-type dialog. A minimum of one set is retained, matching existing behaviour.
 
 Keyboard users can focus the row, press Left (or Delete) to reveal the action, then Tab/Enter to delete. Inputs retain their arrow-key behaviour. The deleted row feeds the same local-draft/5-second server autosave flow as all other edits. Reduced-motion preferences disable the snap transition.
 

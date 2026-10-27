@@ -9,8 +9,10 @@ calendar. Weight and nutrition screens retain their existing storage and behavio
   gym equipment, extra exercises for each region, and barbell/dumbbell rows.
 - Each exercise starts with one blank set; add up to 50 sets and 60 exercises.
   Record kilograms (0–2000) and integer reps (1–1000). Empty and partially entered
-  sets are saved but do not contribute to statistics. Each row after the first
-  has a copy button for the preceding row's weight and reps. For bodyweight exercises,
+  sets are saved but do not contribute to statistics. Every row has a copy button
+  that inserts an independent copy of that row directly below it, including its
+  weight, reps and set type; existing lower rows shift down unchanged. Copying is
+  disabled for completely empty rows and at the 50-set limit. For bodyweight exercises,
   record added load, using 0 kg when unweighted. Keep a consistent convention for
   dumbbells and unilateral exercises; different machines are separate histories.
 - One or two editable body-part tags per exercise. Main exercises can be marked.

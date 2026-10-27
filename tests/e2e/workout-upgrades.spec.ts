@@ -115,15 +115,15 @@ test("replacement retains position and template, clears values only with confirm
   await expect(page.getByLabel("오늘의 메모")).toHaveValue("유지할 메모");
 });
 
-test("set type survives local recovery, autosave, routine loading and export; copy preserves target type", async ({ page, request }) => {
+test("set type survives local recovery, autosave, routine loading and export; insertion copies source type", async ({ page, request }) => {
   const date = "2026-01-04";
-  const entry = { ...bench(), sets: [{ weight: 60, reps: 8 }, { weight: null, reps: null }] };
+  const entry = { ...bench(), sets: [{ weight: 60, reps: 8 }] };
   await request.put("/api/workouts", { headers: auth(), data: { date, revision: 0, note: "", entries: [entry] } });
   await signIn(page); await page.goto("/workouts/" + date);
   const card = page.getByRole("article", { name: entry.name });
-  await card.getByRole("button", { name: "2세트 유형: 일반" }).click();
-  await page.getByRole("dialog", { name: "2세트 유형", exact: true }).getByRole("button", { name: "미니세트 짧게 쉬고 이어서 수행" }).click();
-  await card.getByRole("button", { name: "2세트에 바로 위 세트 복사" }).click();
+  await card.getByRole("button", { name: "1세트 유형: 일반" }).click();
+  await page.getByRole("dialog", { name: "1세트 유형", exact: true }).getByRole("button", { name: "미니세트 짧게 쉬고 이어서 수행" }).click();
+  await card.getByRole("button", { name: "1세트 복사해 아래에 추가" }).click();
   await expect(card.getByRole("button", { name: "2세트 유형: 미니세트" })).toBeVisible();
   await page.reload();
   await expect(card.getByRole("button", { name: "2세트 유형: 미니세트" })).toBeVisible();

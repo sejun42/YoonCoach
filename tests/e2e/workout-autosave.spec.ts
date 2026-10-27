@@ -23,34 +23,39 @@ async function open(page: Page, date: string) {
   return page.getByRole("article", { name, exact: true });
 }
 
-test("copy uses the immediately preceding set and autosave debounces the last input for five seconds", async ({ page, request }) => {
+test("copy inserts the current set below without overwriting later sets and autosaves after five seconds", async ({ page, request }) => {
   const date = "2026-02-11";
   const card = await open(page, date);
   let writes = 0;
   page.on("request", (r) => { if (r.method() === "PUT" && r.url().endsWith("/api/workouts")) writes++; });
   await card.getByLabel("1세트 무게", { exact: true }).fill("65");
   await card.getByLabel("1세트 횟수", { exact: true }).fill("8");
-  await card.getByRole("button", { name: "세트 추가", exact: true }).click();
-  await card.getByRole("button", { name: "2세트에 바로 위 세트 복사" }).click();
+  await card.getByRole("button", { name: "1세트 복사해 아래에 추가" }).click();
   await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("65");
   await expect(card.getByLabel("2세트 횟수", { exact: true })).toHaveValue("8");
   await card.getByLabel("2세트 무게", { exact: true }).fill("60");
   await card.getByLabel("2세트 횟수", { exact: true }).fill("12");
-  await card.getByRole("button", { name: "세트 추가", exact: true }).click();
-  await card.getByRole("button", { name: "3세트에 바로 위 세트 복사" }).click();
+  await card.getByRole("button", { name: "2세트 복사해 아래에 추가" }).click();
   await expect(card.getByLabel("3세트 무게", { exact: true })).toHaveValue("60");
   await expect(card.getByLabel("3세트 횟수", { exact: true })).toHaveValue("12");
   await card.getByLabel("3세트 무게", { exact: true }).fill("55");
   await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("60");
+  await card.getByRole("button", { name: "1세트 복사해 아래에 추가" }).click();
+  await expect(card.locator(".set-row")).toHaveCount(4);
+  await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("65");
+  await expect(card.getByLabel("3세트 무게", { exact: true })).toHaveValue("60");
+  await expect(card.getByLabel("4세트 무게", { exact: true })).toHaveValue("55");
+  await card.getByLabel("2세트 무게", { exact: true }).fill("64");
+  await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("65");
   await page.clock.runFor(4999); expect(writes).toBe(0);
-  await card.getByLabel("3세트 횟수", { exact: true }).fill("10");
+  await card.getByLabel("4세트 횟수", { exact: true }).fill("10");
   await page.clock.runFor(4999); expect(writes).toBe(0);
   await page.clock.runFor(1);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
   expect(writes).toBe(1);
-  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 65, reps: 8 }, { weight: 60, reps: 12 }, { weight: 55, reps: 10 }]);
+  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 65, reps: 8 }, { weight: 64, reps: 8 }, { weight: 60, reps: 12 }, { weight: 55, reps: 10 }]);
   await page.reload();
-  await expect(card.getByLabel("3세트 횟수", { exact: true })).toHaveValue("10");
+  await expect(card.getByLabel("4세트 횟수", { exact: true })).toHaveValue("10");
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

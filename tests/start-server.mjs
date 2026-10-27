@@ -11,7 +11,7 @@ const schema = execFileSync(process.execPath, [
 ], { encoding: "utf8" });
 // Recreate the deployed enum before this change, then apply the production upgrade twice.
 await database.exec(schema.replace(", 'biceps', 'triceps'", "").replace(", 'core'", ""));
-await database.exec('DROP TABLE "WorkoutSession", "WorkoutRoutine", "CustomExercise", "ExercisePreference";');
+await database.exec('DROP TABLE "RoutineShare", "WorkoutSession", "WorkoutRoutine", "CustomExercise", "ExercisePreference";');
 await database.exec('ALTER TABLE "UserSetting" DROP COLUMN "shareExercisesWeekly";');
 await database.exec(`
   ALTER TABLE "DailyCheckin"

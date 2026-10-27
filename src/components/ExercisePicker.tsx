@@ -6,8 +6,8 @@ import { equipmentKeys, equipmentLabels, exerciseGroups, searchExercise, type Eq
 import { requestJson } from "@/lib/tracker-client";
 import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 
-export default function ExercisePicker({ exercises, selected, onAdd, onCreated, onClose }: {
-  exercises: Exercise[]; selected: string[]; onAdd: (exercise: Exercise) => void; onCreated: () => Promise<unknown>; onClose: () => void;
+export default function ExercisePicker({ exercises, selected, onAdd, onCreated, onClose, replacing }: {
+  exercises: Exercise[]; selected: string[]; onAdd: (exercise: Exercise) => void; onCreated: () => Promise<unknown>; onClose: () => void; replacing?: string;
 }) {
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("all");
@@ -29,7 +29,7 @@ export default function ExercisePicker({ exercises, selected, onAdd, onCreated, 
     } catch (error) { setError(error instanceof Error ? error.message : "종목을 추가하지 못했습니다."); }
     finally { setBusy(false); }
   }
-  return <WorkoutDialog title="운동 추가" variant="exercise-picker" onClose={() => { if (!busy) onClose(); }}>
+  return <WorkoutDialog title={replacing ? "운동 교체" : "운동 추가"} variant="exercise-picker" onClose={() => { if (!busy) onClose(); }}>
     <div className="exercise-search"><Search size={18} /><input type="search" enterKeyHint="search" autoComplete="off" spellCheck={false} aria-label="운동 검색" placeholder="종목이나 머신 이름 검색" value={query} onChange={(event) => setQuery(event.target.value)} autoFocus /></div>
     <div className="exercise-filters">{exerciseGroups.map((item) => <button type="button" key={item.key} aria-pressed={group === item.key} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
     <div className="picker-meta"><span>{visible.length}개 종목</span><button type="button" className="text-button" onClick={() => setCustom(!custom)}><Plus size={14} />직접 종목 만들기</button></div>
@@ -41,11 +41,11 @@ export default function ExercisePicker({ exercises, selected, onAdd, onCreated, 
       {error && <p className="form-message error-text" role="alert">{error}</p>}</fieldset>}
     <div className="exercise-results">{visible.map((exercise) => {
       const added = selected.includes(exercise.id);
-      return <button className="exercise-result" type="button" key={exercise.id} disabled={busy || added || selected.length >= 60} onClick={() => onAdd(exercise)} aria-label={exercise.name + (added ? " 추가됨" : " 추가")}>
+      return <button className="exercise-result" type="button" key={exercise.id} disabled={busy || added || (!replacing && selected.length >= 60)} onClick={() => onAdd(exercise)} aria-label={exercise.name + (added ? " 추가됨" : replacing ? " 교체" : " 추가")}>
         <span><strong>{exercise.name}</strong><span className="exercise-result-meta"><PartTags tags={exercise.tags} /><small>{equipmentLabels[exercise.equipment]}{exercise.custom ? " · 내 종목" : ""}{exercise.shared ? " · 공용" : ""}</small></span></span>{added ? <Check size={18} /> : <Plus size={18} />}
       </button>;
     })}{!visible.length && <p className="empty-state">일치하는 종목이 없습니다. 직접 추가할 수 있어요.</p>}</div>
     </div>
-    <div className="dialog-footer"><span className="muted">{selected.length}개 선택됨</span><button className="btn btn-primary" type="button" disabled={busy} onClick={onClose}>선택 완료</button></div>
+    <div className="dialog-footer"><span className="muted">{replacing ? "교체할 종목을 선택하세요" : selected.length + "개 선택됨"}</span><button className="btn btn-primary" type="button" disabled={busy} onClick={onClose}>{replacing ? "취소" : "선택 완료"}</button></div>
   </WorkoutDialog>;
 }

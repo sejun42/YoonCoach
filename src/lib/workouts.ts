@@ -7,7 +7,9 @@ export const machineSettingsSchema = z.array(z.object({ label: z.string().trim()
   .refine((settings) => new Set(settings.map((item) => item.label)).size === settings.length, "설정 이름은 중복할 수 없습니다.");
 export const exerciseSchema = z.object({ id: z.string().min(1).max(180), name: z.string().trim().min(1).max(100), tags: tagsSchema, equipment: z.enum(equipmentKeys) });
 // Autosave must preserve a half-entered set too. Only complete sets enter metrics.
-export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable() });
+export const setTypes = { normal: "일반", mini: "미니세트", drop: "드랍세트" } as const;
+export const setTypeSchema = z.enum(["normal", "mini", "drop"]).optional();
+export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable(), type: setTypeSchema });
 export const workoutEntrySchema = exerciseSchema.extend({ isMain: z.boolean(), sets: z.array(workoutSetSchema).min(1).max(50), settings: machineSettingsSchema });
 export const workoutEntriesSchema = z.array(workoutEntrySchema).max(60).refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length);
 export const workoutSaveSchema = z.object({ date: calendarDateSchema, revision: z.number().int().nonnegative(), entries: workoutEntriesSchema, note: z.string().trim().max(2000) });
@@ -29,7 +31,7 @@ export function newEntry(exercise: Exercise, settings?: MachineSetting[]): Worko
   return { id: exercise.id, name: exercise.name, tags: [...exercise.tags], equipment: exercise.equipment, isMain: false, sets: [blankSet()],
     settings: settings ? structuredClone(settings) : exercise.equipment === "machine" ? defaultMachineSettings() : [] };
 }
-export const recordedSets = (entry: WorkoutEntry) => entry.sets.filter((set): set is { weight: number; reps: number } => set.weight !== null && set.reps !== null && set.reps > 0);
+export const recordedSets = (entry: WorkoutEntry) => entry.sets.filter((set): set is WorkoutSet & { weight: number; reps: number } => set.weight !== null && set.reps !== null && set.reps > 0);
 
 export function representativeParts(entries: WorkoutEntry[]): ExerciseTag[] {
   const scores = new Map<ExerciseTag, { main: number; total: number }>();
@@ -54,7 +56,7 @@ export function exerciseMetrics(entry: WorkoutEntry) {
 }
 
 export function routineEntries(entries: WorkoutEntry[]): WorkoutEntry[] {
-  return entries.map((entry) => ({ ...entry, settings: [], sets: entry.sets.map(blankSet) }));
+  return entries.map((entry) => ({ ...entry, settings: [], sets: entry.sets.map((set) => ({ ...blankSet(), ...(set.type ? { type: set.type } : {}) })) }));
 }
 function preset(name: string, ids: string[]): Routine {
   return { id: "preset:" + name, name, preset: true, entries: ids.map((id, index) => ({ ...newEntry(exerciseCatalog.find((item) => item.id === id)!), isMain: index === 0 })) };

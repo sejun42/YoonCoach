@@ -18,7 +18,7 @@ export function TagPicker({ tags, onChange }: { tags: ExerciseTag[]; onChange: (
     style={{ "--part-color": part.color } as CSSProperties}>{part.label}</button>)}</div>;
 }
 
-export function WorkoutDialog({ title, onClose, children, variant }: { title: string; onClose: () => void; children: ReactNode; variant?: "exercise-picker" }) {
+export function WorkoutDialog({ title, onClose, children, variant }: { title: string; onClose: () => void; children: ReactNode; variant?: "exercise-picker" | "set-type" }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current!;
@@ -45,7 +45,7 @@ export function WorkoutDialog({ title, onClose, children, variant }: { title: st
       dialog.close(); document.body.style.overflow = previous;
     };
   }, []);
-  return <dialog ref={ref} className={"workout-dialog" + (variant === "exercise-picker" ? " exercise-picker-dialog" : "")} aria-label={title} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <dialog ref={ref} className={"workout-dialog" + (variant ? " " + variant + "-dialog" : "")} aria-label={title} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="dialog-content"><div className="section-heading"><h2>{title}</h2><button type="button" className="icon-button" aria-label="닫기" onClick={onClose}><X size={20} /></button></div>{children}</div>
   </dialog>;
 }

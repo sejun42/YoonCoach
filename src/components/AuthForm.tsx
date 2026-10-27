@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
-export default function AuthForm() {
+export default function AuthForm({ returnTo }: { returnTo?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -26,7 +26,7 @@ export default function AuthForm() {
       const me = await fetch("/api/me", { cache: "no-store" });
       if (!me.ok) throw new Error("계정 정보를 불러오지 못했습니다.");
       const account = await me.json();
-      router.replace(account.onboarding_completed ? "/weights" : "/onboarding");
+      router.replace(returnTo ?? (account.onboarding_completed ? "/weights" : "/onboarding"));
     } catch (error) { setMessage(error instanceof Error ? error.message : "연결 상태를 확인해 주세요."); }
     finally { setLoading(false); }
   }

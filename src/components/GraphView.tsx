@@ -29,7 +29,7 @@ export default function GraphView({ rows, today }: { rows: WeighIn[]; today: str
         </div>
       </div>
       <div className="chart-meta">
-        <span><i className="swatch" style={{ background: "#168c89" }} />{mode === "day" ? "일별 체중" : "주간 평균"} <span className="muted">· kg</span></span>
+        <span><i className="swatch" style={{ background: "#80a5ff" }} />{mode === "day" ? "일별 체중" : "주간 평균"} <span className="muted">· kg</span></span>
         <div className="segmented compact" role="group" aria-label="그래프 집계">
           <button type="button" aria-pressed={mode === "day"} onClick={() => setMode("day")}>일별</button>
           <button type="button" aria-pressed={mode === "week"} onClick={() => setMode("week")}>주별</button>
@@ -39,14 +39,14 @@ export default function GraphView({ rows, today }: { rows: WeighIn[]; today: str
         {chartRows.length ? (
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={chartRows} margin={{ top: 18, right: 18, bottom: 4, left: -18 }} accessibilityLayer>
-              <CartesianGrid vertical={false} stroke="#e6ebeb" strokeDasharray="3 5" />
+              <CartesianGrid vertical={false} stroke="#2b3a53" strokeDasharray="3 5" />
               <XAxis dataKey="date" tickFormatter={(value: string) => value.slice(5).replace("-", ".")} minTickGap={34}
-                tick={{ fontSize: 11, fill: "#728080" }} axisLine={false} tickLine={false} dy={10} />
+                tick={{ fontSize: 11, fill: "#a1aec5" }} axisLine={false} tickLine={false} dy={10} />
               <YAxis domain={["dataMin - 0.8", "dataMax + 0.8"]} tickFormatter={(value: number) => value.toFixed(2)}
-                width={72} tick={{ fontSize: 11, fill: "#728080" }} axisLine={false} tickLine={false} tickCount={5} />
+                width={72} tick={{ fontSize: 11, fill: "#a1aec5" }} axisLine={false} tickLine={false} tickCount={5} />
               <Tooltip labelFormatter={(value) => String(value)} formatter={(value) => [Number(value).toFixed(2) + " kg", mode === "day" ? "체중" : "주간 평균"]}
                 contentStyle={{ border: "1px solid #dbe3e2", borderRadius: 8, fontSize: 13 }} />
-              <Line type="monotone" dataKey="value" stroke="#168c89" strokeWidth={2.5}
+              <Line type="monotone" dataKey="value" stroke="#80a5ff" strokeWidth={2.5}
                 dot={chartRows.length < 40 ? { r: 3, strokeWidth: 2, fill: "#fff" } : false} activeDot={{ r: 6 }} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>

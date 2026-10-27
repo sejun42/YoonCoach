@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { exerciseMetrics, recordedSets, type WorkoutHistory } from "@/lib/workouts";
+import { exerciseMetrics, setTypes, recordedSets, type WorkoutHistory } from "@/lib/workouts";
 import { shiftDate } from "@/lib/tracker-client";
 import type { Exercise } from "@/lib/exercise-catalog";
 
@@ -48,16 +48,16 @@ export default function WorkoutProgress({ exercises, selected, onSelect, today }
     {error ? <div role="alert" className="notice error">성장 기록을 불러오지 못했습니다.<button type="button" onClick={() => void mutate()}>다시 시도</button></div> : <div className="progress-chart" role="img" aria-label={labels[metric] + " 추이 그래프. 아래 표에서 수치를 확인할 수 있습니다."}>
       {isLoading ? <p className="empty-state">성장 기록을 불러오는 중입니다.</p> : !valid.length ? <div className="progress-empty"><TrendingUp size={32} /><h3>첫 기록이 성장의 시작입니다.</h3><p>{metric === "reps" ? "이 무게로 기록한 세트가 없습니다." : "무게와 횟수를 입력하고 저장하면 여기에 표시돼요."}</p></div> :
         <ResponsiveContainer width="100%" height="100%"><LineChart data={points} margin={{ top: 20, right: 18, left: 0, bottom: 8 }} accessibilityLayer>
-          <CartesianGrid vertical={false} stroke="#e6ede9" strokeDasharray="3 4" /><XAxis dataKey="date" tickFormatter={(date: string) => date.slice(5).replace("-", "/")} tick={{ fontSize: 11, fill: "#74817e" }} axisLine={false} tickLine={false} minTickGap={28} />
-          <YAxis width={54} tick={{ fontSize: 11, fill: "#74817e" }} axisLine={false} tickLine={false} domain={[0, "auto"]} allowDecimals={metric !== "reps"} />
+          <CartesianGrid vertical={false} stroke="#2b3a53" strokeDasharray="3 4" /><XAxis dataKey="date" tickFormatter={(date: string) => date.slice(5).replace("-", "/")} tick={{ fontSize: 11, fill: "#a1aec5" }} axisLine={false} tickLine={false} minTickGap={28} />
+          <YAxis width={54} tick={{ fontSize: 11, fill: "#a1aec5" }} axisLine={false} tickLine={false} domain={[0, "auto"]} allowDecimals={metric !== "reps"} />
           <Tooltip labelFormatter={(date) => String(date)} formatter={(value) => [Number(value).toLocaleString() + " " + units[metric], labels[metric]]} contentStyle={{ borderRadius: 12, border: "1px solid #e3e9e6", fontSize: 12 }} />
-          <Line type="linear" dataKey={metric} stroke="#126c60" strokeWidth={2.5} dot={{ r: 4, fill: "white", strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={false} />
+          <Line type="linear" dataKey={metric} stroke="#80a5ff" strokeWidth={2.5} dot={{ r: 4, fill: "white", strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={false} />
         </LineChart></ResponsiveContainer>}
     </div>}
     <p className="workout-help">{metric === "weight" ? "각 운동일의 가장 무거운 세트입니다. 횟수도 함께 보며 변화를 확인하세요." : metric === "reps" ? "선택한 무게로 수행한 세트 중 가장 많은 횟수입니다. 해당 무게의 기록이 없는 날은 비워 둡니다." : "총 볼륨 = 모든 세트의 무게 × 횟수 합계. 세트 수가 늘어도 증가하므로 무게·횟수와 함께 보세요."} 맨몸은 추가 중량을 0kg으로 기록하며, 미래 날짜와 빈 세트는 그래프에서 제외됩니다.</p>
     {history.length > 0 && <details className="progress-history"><summary>세부 기록 보기 · {history.length}회</summary><div className="table-scroll"><table><thead><tr><th>날짜</th><th>최고 무게 × 횟수</th><th>세트</th><th>총 볼륨</th></tr></thead><tbody>{[...history].reverse().map((row) => {
       const metrics = exerciseMetrics(row.entry)!;
-      return <tr key={row.date}><th scope="row">{row.date}<details><summary>세트 / 설정</summary><p>{recordedSets(row.entry).map((set) => set.weight + "kg × " + set.reps + "회").join(" · ")}</p><p>{row.entry.settings.filter((item) => item.value).map((item) => item.label + ": " + item.value).join(" · ") || "설정 없음"}</p></details></th><td>{metrics.weight} kg × {metrics.reps}회</td><td>{metrics.sets}</td><td>{metrics.volume.toLocaleString()}</td></tr>;
+      return <tr key={row.date}><th scope="row">{row.date}<details><summary>세트 / 설정</summary><p>{recordedSets(row.entry).map((set) => set.weight + "kg × " + set.reps + "회" + (set.type && set.type !== "normal" ? " (" + setTypes[set.type] + ")" : "")).join(" · ")}</p><p>{row.entry.settings.filter((item) => item.value).map((item) => item.label + ": " + item.value).join(" · ") || "설정 없음"}</p></details></th><td>{metrics.weight} kg × {metrics.reps}회</td><td>{metrics.sets}</td><td>{metrics.volume.toLocaleString()}</td></tr>;
     })}</tbody></table></div></details>}
   </section>;
 }

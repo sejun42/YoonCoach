@@ -308,7 +308,7 @@ label { font-size: 12px; color: #afbdd3; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
 .weekday { text-align: center; padding: 10px 0 12px; font-size: 11px; color: #a0b1cd; }
 .weekday:first-child { color: #f291a3; }
-.calendar-day, .calendar-blank { min-height: 104px; min-width: 0; }
+.calendar-day, .calendar-blank { min-height: 84px; min-width: 0; }
 .calendar-day { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 6px 0; border: 1px solid transparent; border-radius: 6px; background: transparent; }
 .calendar-day:hover:not(:disabled) { background: #213552; }
 .calendar-day[aria-pressed="true"] { border-color: #6897ff; background: #162a4a; }

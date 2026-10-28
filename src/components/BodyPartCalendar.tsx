@@ -3,7 +3,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Dumbbell, RotateCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
 import { allBodyParts, currentBodyParts, legacyBodyParts, recommendPart, type BodyPartKey, type WorkoutLog, type PartLastDate } from "@/lib/body-parts";
 import { elapsedDays, useToday } from "@/lib/tracker-client";
 
@@ -41,9 +41,6 @@ export default function BodyPartCalendar() {
     <div className="page-heading"><div><p className="eyebrow">TRAINING JOURNAL</p><h1>운동 기록</h1></div>
       <button className="icon-button" aria-label="운동 기록 새로고침" disabled={isValidating} onClick={() => void mutate()}><RotateCw size={18} className={isValidating ? "spin" : ""} /></button>
     </div>
-    <div className="training-banner"><div><span className="eyebrow">ONE MORE REP</span><h2>지난번보다 한 걸음 더.</h2><p>종목별 무게와 횟수를 쌓고, 나의 변화를 확인하세요.</p></div>
-      {today && <Link prefetch={false} className="btn btn-primary" href={"/workouts/" + today}><Dumbbell size={17} />오늘 운동 기록<ArrowUpRight size={16} /></Link>}
-    </div>
     {error && <div className="notice error" role="alert">기록을 불러오지 못했습니다. <button onClick={() => void mutate()}>다시 시도</button></div>}
     <div className="calendar-layout">
       <section className="calendar-section" aria-labelledby="calendar-title">
@@ -69,7 +66,6 @@ export default function BodyPartCalendar() {
       <aside className="training-aside">
         <div className="recommendation" style={partStyle(recommended?.color ?? "#8b9696")}><div><span className="metric-label">오늘 추천</span><strong>{recommended?.label ?? "기록 확인 중"}</strong></div>
           <p>{recommended ? lastDate ? "마지막 운동 " + elapsedDays(lastDate, today) + "일 전" : "아직 기록이 없는 부위" : ""}</p></div>
-        <div className="training-guide"><h3>기록은 자세히, 캘린더는 간결하게</h3><p>운동마다 무게와 횟수를 입력하면 대표 부위 2개가 자동으로 표시됩니다.</p><p>메인 종목을 우선하고, 기록한 세트 수로 순서를 정합니다.</p><span className="muted">기존 부위 기록도 그대로 보관됩니다.</span></div>
       </aside>
     </div>
     <section className="section-block" aria-labelledby="part-frequency-title"><div className="section-heading"><h2 id="part-frequency-title">이달의 부위별 빈도</h2><span className="muted">대표 부위 기준</span></div>

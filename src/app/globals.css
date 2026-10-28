@@ -3,12 +3,6 @@
 @tailwind utilities;
 
 /* Training journal surfaces and controls. */
-.training-banner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px; margin-bottom: 30px; border: 1px solid #2c426a; border-radius: 14px; background: linear-gradient(115deg, #162a4a, #111b2e); }
-.training-banner h2 { font-size: 23px; letter-spacing: -.5px; margin: 4px 0 9px; }
-.training-banner p { font-size: 12px; line-height: 1.8; color: #a1b5d6; }
-.training-guide { padding: 4px 18px; }
-.training-guide h3 { font-size: 14px; line-height: 1.7; }
-.training-guide p { font-size: 12px; line-height: 1.9; color: var(--muted); margin: 10px 0; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; margin-bottom: 22px; min-height: 32px; }
 .workout-date { font-size: 12px; margin-top: 10px; color: var(--muted); }
 .workout-screen .page-heading { margin-bottom: 24px; }
@@ -145,11 +139,7 @@
 .progress-history th details p { color: var(--muted); line-height: 1.9; overflow-wrap: anywhere; }
 .workout-future { background: #302a1d; color: #edcf87; }
 @media (max-width: 700px) {
-  .training-banner { flex-direction: column; align-items: flex-start; padding: 22px; }
-  .training-banner h2 { font-size: 21px; }
-  .training-banner .btn { margin-top: 3px; }
   .training-aside .recommendation { margin-bottom: 12px; }
-  .training-guide { padding: 0 4px 10px; }
   .workout-cards { grid-template-columns: minmax(0, 1fr); }
   .workout-card { padding: 18px 16px 6px; }
   .workout-toolbar > div { gap: 2px; }

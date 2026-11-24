@@ -159,7 +159,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
         {!entries.length && <div className="workout-empty"><span><Dumbbell size={28} /></span><h2>오늘의 첫 세트를 시작하세요.</h2><p>종목을 추가하거나 나만의 루틴을 불러오세요.<br />각 운동은 1세트부터 시작합니다.</p></div>}
         {!!entries.length && <p className="workout-help">세트를 왼쪽으로 밀면 삭제 버튼이 나타납니다.<span id="set-swipe-help" className="sr-only">키보드에서는 세트 행을 선택하고 왼쪽 화살표를 누른 뒤 Tab으로 삭제 버튼에 이동하세요. 오른쪽 화살표나 Escape로 닫습니다.</span></p>}
         <button type="button" className="btn btn-ghost" disabled={!library} onClick={() => setImporting(true)}>GPT 루틴 붙여넣기</button>
-        <div className="workout-cards">{entries.map((entry, index) => <WorkoutExerciseCard key={entry.id} entry={entry} index={index} count={entries.length} date={date} today={today} onChange={updateEntry}
+        <div className="workout-cards">{entries.map((entry, index) => <WorkoutExerciseCard key={entry.id} entry={entry} gyms={library ? library.gyms[entry.id] ?? [] : undefined} index={index} count={entries.length} date={date} today={today} onChange={updateEntry}
           onReplace={() => { setInsertingAfterId(null); setReplacingId(entry.id); setPicker(true); }}
           onSetCompleted={() => updateRest({date, start: Date.now()})}
           canAdd={!!library && entries.length < 60} onAddAfter={() => { setReplacingId(null); setInsertingAfterId(entry.id); setPicker(true); }}
@@ -182,7 +182,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
     </form>
     <WorkoutProgress exercises={exercises} selected={selectedGraph} onSelect={setGraphId} today={today} />
     {importing && library && <PlanImport library={library} entries={entries} onClose={() => setImporting(false)} onApply={next => { edit(next); setImporting(false); }} />}
-    {picker && library && <ExercisePicker date={date} exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); setInsertingAfterId(null); }} />}
+    {picker && library && <ExercisePicker gyms={library.gyms} date={date} exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); setInsertingAfterId(null); }} />}
     {shared && <RoutineShareDialog {...shared} onClose={() => setShared(null)} />}
     {settingsEntry && <MachineSettings name={settingsEntry.name} settings={settingsEntry.settings} onApply={(settings) => updateEntry({ ...settingsEntry, settings })} onClose={() => setSettingsId(null)} />}
     {routineDialog && <WorkoutDialog title={routineDialog === "load" ? "루틴 불러오기" : "나의 루틴으로 저장"} onClose={() => { if (!routineBusy) setRoutineDialog(null); }}>

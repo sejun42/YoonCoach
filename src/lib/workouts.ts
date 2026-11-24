@@ -28,7 +28,7 @@ export function sameWorkout(a: WorkoutSession, b: WorkoutSession) {
 }
 export type Routine = { id: string; name: string; entries: WorkoutEntry[]; preset?: boolean };
 export type WorkoutHistory = { date: string; entry: WorkoutEntry };
-export type WorkoutLibrary = { exercises: Exercise[]; preferences: Record<string, MachineSetting[]>; routines: Routine[] };
+export type WorkoutLibrary = { gyms: Record<string, string[]>; exercises: Exercise[]; preferences: Record<string, MachineSetting[]>; routines: Routine[] };
 export const defaultMachineSettings = (): MachineSetting[] => [{ label: "안장 높이", value: "" }, { label: "가슴 패드", value: "" }];
 export const blankSet = (): WorkoutSet => ({ weight: null, reps: null });
 export function newEntry(exercise: Exercise, settings?: MachineSetting[]): WorkoutEntry {

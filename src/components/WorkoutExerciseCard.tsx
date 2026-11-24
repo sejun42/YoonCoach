@@ -1,14 +1,15 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Copy, Info, Plus, Star, Trash2, TrendingUp, ArrowLeftRight } from "lucide-react";
-import { equipmentLabels } from "@/lib/exercise-catalog";
+import GymSelector from "./GymSelector";
+import { equipmentLabels, hasGymSelector } from "@/lib/exercise-catalog";
 import { blankSet, wearableGear, recordedSets, setTypes, type WorkoutEntry } from "@/lib/workouts";
 import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import { useExerciseHistory } from "./WorkoutProgress";
 import SwipeSetRow from "./SwipeSetRow";
 
-export default function WorkoutExerciseCard({ entry, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd, onSetCompleted }: {
-  entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean; onSetCompleted: () => void;
+export default function WorkoutExerciseCard({ entry, gyms, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd, onSetCompleted }: {
+  gyms?: string[]; entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean; onSetCompleted: () => void;
 }) {
   const [editingTags, setEditingTags] = useState(false);
   const [setIndexToEdit, setSetIndexToEdit] = useState<number | null>(null);
@@ -40,6 +41,7 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
       <button type="button" className="icon-button" aria-label={entry.name + " 세부 설정"} onClick={onSettings}><Info size={19} /></button></div>
     <div className="workout-card-meta"><button type="button" className="tags-edit" aria-label={entry.name + " 부위 태그 편집"} onClick={() => setEditingTags(!editingTags)}><PartTags tags={entry.tags} /><small>편집</small></button>
       <button type="button" className="main-toggle" aria-pressed={entry.isMain} onClick={() => onChange({ ...entry, isMain: !entry.isMain })}><Star size={14} fill={entry.isMain ? "currentColor" : "none"} />메인</button></div>
+    {gyms && hasGymSelector(entry.equipment) && <GymSelector exerciseId={entry.id} gyms={gyms} />}
     {editingTags && <div className="card-tag-editor"><p className="workout-help">대표 부위 1–2개를 선택하세요. 두 태그는 세트 점수를 절반씩 나눕니다.</p><TagPicker tags={entry.tags} onChange={(tags) => { if (tags.length) onChange({ ...entry, tags }); }} /></div>}
     <div className="previous-workout"><span>지난 기록</span><p>{previous ? previous.date.slice(5).replace("-", "/") + " · " + previousSets.map((set) => set.weight + "kg × " + set.reps).join(" / ") : error ? "불러오지 못했습니다" : data ? "첫 기록을 시작해 보세요" : "불러오는 중"}</p></div>
     <div className={"set-grid" + (entry.sets.some(s => s.completed !== undefined) ? " planned-grid" : "")}><span>세트</span><span>무게 (kg)</span><span>횟수</span><span><span className="sr-only">세트 복사 및 삭제</span></span>

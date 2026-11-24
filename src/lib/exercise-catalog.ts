@@ -5,6 +5,8 @@ export type ExerciseTag = (typeof exerciseTagKeys)[number];
 export const equipmentKeys = ["machine", "barbell", "dumbbell", "smith", "cable", "bodyweight"] as const;
 export type Equipment = (typeof equipmentKeys)[number];
 export const equipmentLabels: Record<Equipment, string> = { machine: "머신", barbell: "바벨", dumbbell: "덤벨", smith: "스미스", cable: "케이블", bodyweight: "맨몸 / 추가 중량" };
+export const gymNames = ["에이블짐 수유점", "에이블짐 신논현역점", "키스트 헬스장"] as const;
+export const hasGymSelector = (equipment: Equipment) => ["machine", "smith", "cable"].includes(equipment);
 export type Exercise = { id: string; name: string; tags: ExerciseTag[]; equipment: Equipment; custom?: boolean; shared?: boolean };
 
 export function exerciseIdentity(exercise: { name: string; equipment: string }) {

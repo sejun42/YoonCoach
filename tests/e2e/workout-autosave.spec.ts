@@ -23,6 +23,38 @@ async function open(page: Page, date: string) {
   return page.getByRole("article", { name, exact: true });
 }
 
+test("machine gyms save separately from the session and appear in the picker", async ({ page, request }) => {
+  const barbell = await open(page, "2026-02-25");
+  await expect(barbell.locator(".gym-selector")).toHaveCount(0);
+  const machine = exerciseCatalog.find(item => item.equipment === "machine")!;
+  const addButton = page.locator(".add-exercise");
+  await addButton.click();
+  await page.getByLabel("운동 검색").fill(machine.name);
+  const result = page.getByRole("button", { name: machine.name + " 추가", exact: true });
+  await result.click();
+  await page.getByRole("button", { name: "선택 완료" }).click();
+  const card = page.getByRole("article", { name: machine.name, exact: true });
+  const summary = card.locator(".gym-selector summary");
+  await expect(summary).toHaveText("헬스장");
+  await summary.click();
+  for (const gym of ["에이블짐 수유점", "키스트 헬스장"]) {
+    await card.getByLabel(gym, { exact: true }).click();
+    await expect(summary).toContainText(gym);
+  }
+  const peer = await request.get("/api/workouts/library", { headers: auth("other-user") });
+  expect((await peer.json()).gyms[machine.id]).toBeUndefined();
+  await page.goto("/workouts/2026-02-26");
+  await addButton.click();
+  await page.getByLabel("운동 검색").fill(machine.name);
+  await expect(result).toContainText("키스트 헬스장");
+  await expect(result).toContainText("에이블짐 수유점");
+  await result.click();
+  await page.getByRole("button", { name: "선택 완료" }).click();
+  await summary.click();
+  await card.getByLabel("키스트 헬스장", { exact: true }).click();
+  await expect(summary).toHaveText("헬스장에이블짐 수유점");
+});
+
 test("pasted targets become recorded sets only when checked and survive reload", async ({ page, request }) => {
   const date = "2026-02-01";
   const card = await open(page, date);

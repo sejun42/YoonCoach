@@ -66,6 +66,12 @@
 .add-exercise > span { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: auto; }
 .workout-note { display: block; }
 .workout-note textarea.field { height: auto; min-height: 76px; resize: vertical; font-family: inherit; font-size: 13px; line-height: 1.8; }
+.gym-selector { margin: 8px 0; font-size: 13px; color: var(--muted); }
+.gym-selector summary { cursor: pointer; padding: 6px 0; }
+.gym-selector summary strong { margin-left: 8px; font-weight: 600; }
+.gym-selector fieldset { display: grid; gap: 2px; }
+.gym-selector label { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.gym-selector input { width: 18px; height: 18px; accent-color: var(--accent); }
 .workout-savebar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 0 24px; }
 .workout-savebar > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .workout-dialog { --dialog-gap: 12px; position: fixed; top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-viewport-height, 100dvh) / 2); bottom: auto; margin: 0 auto; transform: translateY(-50%); padding: 0; border: 1px solid var(--line); border-radius: 16px; width: min(600px, calc(100vw - 24px)); max-height: calc(var(--dialog-viewport-height, 100dvh) - var(--dialog-gap) * 2); overflow-y: auto; overscroll-behavior: contain; color: var(--text); background: var(--panel); box-shadow: 0 20px 90px #00000066; }

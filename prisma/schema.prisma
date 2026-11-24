@@ -75,6 +75,7 @@ model User {
   workoutSessions  WorkoutSession[]
   workoutRoutines  WorkoutRoutine[]
   customExercises  CustomExercise[]
+  exerciseGyms ExerciseGym[]
   exercisePreferences ExercisePreference[]
   coachingLogs      CoachingLog[]
   pushSubscriptions PushSubscription[]
@@ -210,6 +211,15 @@ model CustomExercise {
 
   @@unique([userId, name])
   @@index([publicAt])
+}
+
+model ExerciseGym {
+  userId     String
+  exerciseId String
+  gym        String
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, exerciseId, gym])
 }
 
 model ExercisePreference {

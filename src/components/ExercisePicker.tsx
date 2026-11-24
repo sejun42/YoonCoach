@@ -7,8 +7,8 @@ import { recordedSets, type WorkoutHistory, type WorkoutSet } from "@/lib/workou
 import { requestJson } from "@/lib/tracker-client";
 import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 
-export default function ExercisePicker({ date, exercises, selected, onAdd, onCreated, onClose, replacing }: {
-  date: string; exercises: Exercise[]; selected: string[]; onAdd: (exercise: Exercise, previousSets?: WorkoutSet[]) => void; onCreated: () => Promise<unknown>; onClose: () => void; replacing?: string;
+export default function ExercisePicker({ gyms, date, exercises, selected, onAdd, onCreated, onClose, replacing }: {
+  gyms: Record<string, string[]>; date: string; exercises: Exercise[]; selected: string[]; onAdd: (exercise: Exercise, previousSets?: WorkoutSet[]) => void; onCreated: () => Promise<unknown>; onClose: () => void; replacing?: string;
 }) {
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("all");
@@ -60,7 +60,7 @@ export default function ExercisePicker({ date, exercises, selected, onAdd, onCre
     <div className="exercise-results">{visible.map((exercise) => {
       const added = selected.includes(exercise.id);
       return <button className="exercise-result" type="button" key={exercise.id} disabled={busy || added || (!replacing && selected.length >= 60)} onClick={() => void select(exercise)} aria-label={exercise.name + (added ? " 추가됨" : replacing ? " 교체" : " 추가")}>
-        <span><strong>{exercise.name}</strong><span className="exercise-result-meta"><PartTags tags={exercise.tags} /><small>{equipmentLabels[exercise.equipment]}{exercise.custom ? " · 내 종목" : ""}{exercise.shared ? " · 공용" : ""}</small></span></span>{added ? <Check size={18} /> : <Plus size={18} />}
+        <span><strong>{exercise.name}</strong><span className="exercise-result-meta"><PartTags tags={exercise.tags} /><small>{equipmentLabels[exercise.equipment]}{exercise.custom ? " · 내 종목" : ""}{exercise.shared ? " · 공용" : ""}{gyms[exercise.id]?.map(gym => " · " + gym).join("")}</small></span></span>{added ? <Check size={18} /> : <Plus size={18} />}
       </button>;
     })}{!visible.length && <p className="empty-state">일치하는 종목이 없습니다. 직접 추가할 수 있어요.</p>}</div>
     </div>

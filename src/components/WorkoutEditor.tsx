@@ -7,7 +7,7 @@ import { ArrowLeft, BookOpen, Check, Dumbbell, Plus, Save, Trash2, Share2 } from
 import { requestJson, useToday } from "@/lib/tracker-client";
 import type { BodyPartKey } from "@/lib/body-parts";
 import { exerciseCatalog, type Exercise } from "@/lib/exercise-catalog";
-import { exerciseMetrics, newEntry, recordedSets, representativeParts, routineEntries, starterRoutines, type Routine, type WorkoutEntry, type WorkoutLibrary, type WorkoutSession } from "@/lib/workouts";
+import { exerciseMetrics, newEntry, recordedSets, representativeParts, routineEntries, starterRoutines, type Routine, type WorkoutEntry, type WorkoutLibrary, type WorkoutSession, type WorkoutSet } from "@/lib/workouts";
 import PlanImport from "./PlanImport";
 import ExercisePicker from "./ExercisePicker";
 import MachineSettings from "./MachineSettings";
@@ -80,13 +80,18 @@ export default function WorkoutEditor({ date }: { date: string }) {
     setDraft(next); setMessage(""); setFailed(false);
   }
   function updateEntry(entry: WorkoutEntry) { edit(entries.map((item) => item.id === entry.id ? entry : item)); }
-  function addExercise(exercise: Exercise) {
+  function addExercise(exercise: Exercise, previousSets?: WorkoutSet[]) {
     if (replacingId) {
       if (entries.some((entry) => entry.id === exercise.id)) return;
       const old = entries.find((entry) => entry.id === replacingId);
       if (!old) return;
       if (old.sets.some((set) => set.weight !== null || set.reps !== null) && !window.confirm(old.name + "에 입력한 무게·횟수를 지우고 " + exercise.name + "로 교체할까요?")) return;
-      const replacement = { ...newEntry(exercise, library?.preferences[exercise.id]), isMain: old.isMain, sets: routineEntries([old])[0].sets };
+      const template = previousSets?.length ? previousSets : routineEntries([old])[0].sets;
+      const replacement = {
+        ...newEntry(exercise, library?.preferences[exercise.id]),
+        isMain: old.isMain,
+        sets: template.map(({ weight, reps, type }) => ({ weight, reps, type, completed: false }))
+      };
       edit(entries.map((entry) => entry.id === replacingId ? replacement : entry));
       if (graphId === replacingId) setGraphId(exercise.id);
       setReplacingId(null); setPicker(false); return;
@@ -173,7 +178,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
     </form>
     <WorkoutProgress exercises={exercises} selected={selectedGraph} onSelect={setGraphId} today={today} />
     {importing && library && <PlanImport library={library} entries={entries} onClose={() => setImporting(false)} onApply={next => { edit(next); setImporting(false); }} />}
-    {picker && library && <ExercisePicker exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); setInsertingAfterId(null); }} />}
+    {picker && library && <ExercisePicker date={date} exercises={library.exercises} selected={entries.map((entry) => entry.id)} replacing={replacingId ?? undefined} onAdd={addExercise} onCreated={reloadLibrary} onClose={() => { setPicker(false); setReplacingId(null); setInsertingAfterId(null); }} />}
     {shared && <RoutineShareDialog {...shared} onClose={() => setShared(null)} />}
     {settingsEntry && <MachineSettings name={settingsEntry.name} settings={settingsEntry.settings} onApply={(settings) => updateEntry({ ...settingsEntry, settings })} onClose={() => setSettingsId(null)} />}
     {routineDialog && <WorkoutDialog title={routineDialog === "load" ? "루틴 불러오기" : "나의 루틴으로 저장"} onClose={() => { if (!routineBusy) setRoutineDialog(null); }}>

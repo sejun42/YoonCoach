@@ -105,6 +105,8 @@ test("replacement retains position and template, clears values only with confirm
   const card = page.getByRole("article").first();
   await expect(card).toHaveAttribute("aria-label", "덤벨 인클라인 프레스");
   await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("");
+  await expect(card.getByRole("checkbox")).toHaveCount(2);
+  await expect(card.getByLabel("1세트 수행 완료")).not.toBeChecked();
   await expect(card.locator(".set-row")).toHaveCount(2);
   await expect(card.getByRole("button", { name: "1세트 유형: 드랍세트", exact: true })).toBeVisible();
   await expect(card.getByRole("button", { name: "메인", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -113,6 +115,26 @@ test("replacement retains position and template, clears values only with confirm
   await page.reload();
   await expect(card).toHaveAttribute("aria-label", "덤벨 인클라인 프레스");
   await expect(page.getByLabel("오늘의 메모")).toHaveValue("유지할 메모");
+  const prior = { ...first, sets: [
+    { weight: 75, reps: 6, type: "mini", completed: true },
+    { weight: 85, reps: 4, completed: false }
+  ] };
+  expect((await request.put("/api/workouts", { headers: auth(), data: { date: "2025-12-30", revision: 0, note: "", entries: [prior] } })).ok()).toBe(true);
+  await card.getByRole("button", { name: "덤벨 인클라인 프레스 운동 교체" }).click();
+  await picker.getByLabel("운동 검색").fill(first.name);
+  await picker.getByRole("button", { name: first.name + " 교체", exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(card.getByRole("checkbox")).toHaveCount(1);
+  await expect(card.getByLabel("1세트 수행 완료")).not.toBeChecked();
+  await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("75");
+  await expect(card.getByLabel("1세트 횟수", { exact: true })).toHaveValue("6");
+  await card.getByLabel("1세트 횟수", { exact: true }).fill("5");
+  await card.getByLabel("1세트 수행 완료").check();
+  await expect(page.getByRole("timer")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("자동 저장했습니다", { timeout: 10000 });
+  await page.reload();
+  await expect(card.getByLabel("1세트 수행 완료")).toBeChecked();
+  await expect(card.getByLabel("1세트 횟수", { exact: true })).toHaveValue("5");
 });
 
 test("card add inserts selections below in order, preserves records, and resets to append after closing", async ({ page, request }) => {

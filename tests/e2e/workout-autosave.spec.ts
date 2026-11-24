@@ -44,6 +44,11 @@ test("pasted targets become recorded sets only when checked and survive reload",
   await card.getByRole("button", {name:"1세트 유형: 일반"}).click();
   await page.getByRole("button", {name:"RIR 2회",exact:true}).click();
   await page.getByRole("button", {name:"닫기",exact:true}).click();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: new URL(page.url()).origin });
+  await page.getByRole("button", {name:"오늘 기록 복사"}).click();
+  await expect(page.getByRole("button", {name:"복사했습니다"})).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied.split(/\r?\n/)).toEqual([date + " 운동 기록", "", expect.stringContaining(name), "1세트: 80kg × 6회 / 일반 / RIR 2"]);
   await expect(timer).toHaveText("1분 05초");
   const start = await page.evaluate(() => Date.now());
   await page.goto("/body-parts");

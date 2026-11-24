@@ -454,6 +454,13 @@ label { font-size: 12px; color: #afbdd3; }
 .set-type-options { display: grid; gap: 8px; }
 .set-type-options button { text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--bg); }
 .set-type-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-light); }
+.rir-control { margin-bottom: 12px; }
+.rir-control label { display: block; }
+.rir-control strong { float: right; color: var(--accent); }
+.rir-control input { display: block; width: 100%; margin: 8px 0 0; height: 30px; accent-color: var(--accent); }
+.rir-ticks { display: flex; justify-content: space-between; }
+.rir-ticks button { min-width: 24px; min-height: 26px; color: var(--muted); }
+.rir-ticks button[aria-pressed="true"] { color: var(--accent); font-weight: 700; }
 .set-type-options strong, .set-type-options span { display: block; }
 .set-type-options span { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .routine-share { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }

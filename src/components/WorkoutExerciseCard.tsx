@@ -13,6 +13,11 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
   const [editingTags, setEditingTags] = useState(false);
   const [setIndexToEdit, setSetIndexToEdit] = useState<number | null>(null);
   const [openSet, setOpenSet] = useState<number | null>(null);
+  const editingRir = setIndexToEdit === null ? undefined : entry.sets[setIndexToEdit]?.rir;
+  function changeRir(rir: number | undefined) {
+    if (setIndexToEdit === null || rir === editingRir) return;
+    onChange({ ...entry, sets: entry.sets.map((set, i) => i === setIndexToEdit ? { ...set, rir } : set) });
+  }
   const cardRef = useRef<HTMLElement>(null);
   const position = useRef<{ x: number; y: number; index: number } | null>(null);
   useLayoutEffect(() => {
@@ -54,7 +59,7 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
           disabled={entry.sets.length >= 50 || (set.weight === null && set.reps === null)}
           onClick={() => {
             setOpenSet(null);
-            onChange({ ...entry, sets: [...entry.sets.slice(0, setIndex + 1), { ...set, ...(set.completed !== undefined && { completed: false }) }, ...entry.sets.slice(setIndex + 1)] });
+            onChange({ ...entry, sets: [...entry.sets.slice(0, setIndex + 1), { ...set, rir: undefined, ...(set.completed !== undefined && { completed: false }) }, ...entry.sets.slice(setIndex + 1)] });
           }}><Copy size={15} /></button>
         </span>
       </SwipeSetRow>)}
@@ -69,6 +74,16 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
       <button type="button" className="icon-button" aria-label={entry.name + " 아래로 이동"} disabled={index === count - 1} onClick={() => onMove(1)}><ArrowDown size={15} /></button>
       <button type="button" className="icon-button" aria-label={entry.name + " 운동 삭제"} onClick={onRemove}><Trash2 size={15} /></button></div></div>
     {setIndexToEdit !== null && <WorkoutDialog title={`${setIndexToEdit + 1}세트 유형`} variant="set-type" onClose={() => setSetIndexToEdit(null)}>
+      <div className="rir-control">
+        <label>RIR · 남은 가능 횟수 <strong>{editingRir === undefined ? "미기록" : editingRir + "회"}</strong>
+          <input type="range" aria-label="RIR" min={0} max={5} step={1} value={editingRir ?? 0}
+            aria-valuetext={editingRir === undefined ? "미기록" : editingRir + "회"}
+            onChange={event => changeRir(event.currentTarget.valueAsNumber)}
+            onPointerUp={event => changeRir(event.currentTarget.valueAsNumber)} />
+        </label>
+        <div className="rir-ticks">{[0,1,2,3,4,5].map(n => <button type="button" key={n} aria-label={`RIR ${n}회`} aria-pressed={editingRir === n} onClick={() => changeRir(n)}>{n}</button>)}</div>
+        <button type="button" className="text-button" disabled={editingRir === undefined} onClick={() => changeRir(undefined)}>RIR 지우기</button>
+      </div>
       <div className="set-type-options">{(Object.keys(setTypes) as (keyof typeof setTypes)[]).map((type) => <button type="button" key={type} aria-pressed={(entry.sets[setIndexToEdit]?.type ?? "normal") === type} onClick={() => {
         onChange({ ...entry, sets: entry.sets.map((set, i) => i === setIndexToEdit ? { ...set, type } : set) }); setSetIndexToEdit(null);
       }}><strong>{setTypes[type]}</strong><span>{type === "normal" ? "충분히 쉬고 다음 세트" : type === "mini" ? "짧게 쉬고 이어서 수행" : "무게를 낮춰 이어서 수행"}</span></button>)}</div>

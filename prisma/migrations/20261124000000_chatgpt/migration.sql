@@ -1,0 +1,3 @@
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "gptCodeHash" TEXT, ADD COLUMN IF NOT EXISTS "gptChallenge" TEXT, ADD COLUMN IF NOT EXISTS "gptCodeExpiry" TIMESTAMP(3), ADD COLUMN IF NOT EXISTS "gptTokenHash" TEXT, ADD COLUMN IF NOT EXISTS "gptTokenExpiry" TIMESTAMP(3);
+CREATE UNIQUE INDEX IF NOT EXISTS "User_gptCodeHash_key" ON "User" ("gptCodeHash");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_gptTokenHash_key" ON "User" ("gptTokenHash");

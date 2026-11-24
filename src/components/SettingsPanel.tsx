@@ -142,6 +142,15 @@ export default function SettingsPanel() {
     </section>
     <ExerciseSharingPanel />
     <section className="section-block">
+      <div className="section-heading"><h2>ChatGPT 연결</h2></div>
+      <p>ChatGPT에서 사용자 지정 MCP 서버를 추가할 때 아래 주소와 OAuth 인증을 선택하세요.</p>
+      <input className="field" aria-label="MCP 서버 주소" readOnly value="https://yoon-coach.vercel.app/api/mcp" onFocus={event => event.currentTarget.select()} />
+      <button type="button" className="text-button" onClick={async () => {
+        try { await requestJson("/api/gpt-link", {method:"DELETE",headers:{"x-yooncoach-action":"disconnect"}}); setMessage("ChatGPT 연결을 해제했습니다."); }
+        catch { setMessage("연결을 해제하지 못했습니다."); }
+      }}>연결 해제</button>
+    </section>
+    <section className="section-block">
       <div className="section-heading"><h2>기록 관리</h2></div>
       <a className="settings-link" href="/api/export/csv" download><span><Download size={18} />전체 기록 다운로드<small>체중 · 운동 세트 / 루틴 · 식단 · 코칭</small></span><ArrowUpRight size={18} /></a>
       <Link className="settings-link" href="/checkins" prefetch={false}><span>이전 식단 · 체크인 기록</span><ArrowUpRight size={18} /></Link>

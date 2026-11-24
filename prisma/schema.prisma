@@ -60,6 +60,11 @@ enum BodyPart {
 model User {
   id                String             @id @default(cuid())
   email             String             @unique
+  gptCodeHash       String? @unique
+  gptChallenge      String?
+  gptCodeExpiry     DateTime?
+  gptTokenHash      String? @unique
+  gptTokenExpiry    DateTime?
   passwordHash      String
   createdAt         DateTime           @default(now())
   profile           Profile?

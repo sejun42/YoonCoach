@@ -26,6 +26,7 @@ export default function AuthForm({ returnTo }: { returnTo?: string }) {
       const me = await fetch("/api/me", { cache: "no-store" });
       if (!me.ok) throw new Error("계정 정보를 불러오지 못했습니다.");
       const account = await me.json();
+      if (returnTo?.startsWith("/connect/chatgpt?")) { window.location.assign(returnTo); return; }
       router.replace(returnTo ?? (account.onboarding_completed ? "/weights" : "/onboarding"));
     } catch (error) { setMessage(error instanceof Error ? error.message : "연결 상태를 확인해 주세요."); }
     finally { setLoading(false); }

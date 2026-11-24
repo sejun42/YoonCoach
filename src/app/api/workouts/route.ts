@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { calendarDateSchema } from "@/lib/schemas";
 import { sameWorkout, workoutSaveSchema } from "@/lib/workouts";
 import { canonicalEntries, readEntries } from "@/lib/services/workouts";
+import { readWorkoutDay } from "@/lib/services/workout-day";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
@@ -12,13 +13,9 @@ export async function GET(req: NextRequest) {
   if (req.headers.get("x-workout-owner") && req.headers.get("x-workout-owner") !== auth.userId) return jsonError("로그인 계정이 변경되었습니다. 다시 열어 주세요.", 403);
   const parsed = calendarDateSchema.safeParse(req.nextUrl.searchParams.get("date"));
   if (!parsed.success) return jsonError("올바른 날짜를 선택해 주세요.");
-  const date = dateFromYmd(parsed.data);
-  const [session, legacy] = await Promise.all([
-    db.workoutSession.findUnique({ where: { userId_date: { userId: auth.userId, date } } }),
-    db.workoutBodyPartLog.findMany({ where: { userId: auth.userId, date }, select: { bodyPart: true } })
-  ]);
-  return NextResponse.json({ session: { date: parsed.data, revision: session?.revision ?? 0, entries: readEntries(session?.entries), note: session?.note ?? "" },
-    legacyParts: legacy.map((row) => row.bodyPart) }, { headers: { "Cache-Control": "private, no-store" } });
+  return NextResponse.json(await readWorkoutDay(auth.userId, parsed.data), {
+    headers: { "Cache-Control": "private, no-store" }
+  });
 }
 
 export async function PUT(req: NextRequest) {

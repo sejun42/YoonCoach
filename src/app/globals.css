@@ -46,6 +46,8 @@
 .set-grid .field { margin: 0; text-align: center; font-variant-numeric: tabular-nums; padding: 6px 4px; height: 40px; font-size: 16px; }
 .set-grid .field::placeholder { color: #7788a3; }
 .set-grid .icon-button { width: 30px; height: 40px; }
+.planned-grid, .planned-grid .set-row { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 60px; }
+.planned-grid input[type="checkbox"] { width: 22px; height: 22px; margin: 0 4px; accent-color: var(--accent); }
 .set-actions { display: flex; align-items: center; }
 .set-actions .icon-button { height: 40px; flex-basis: 30px; }
 .set-number { font-size: 12px; border-radius: 5px; padding: 3px 0; }

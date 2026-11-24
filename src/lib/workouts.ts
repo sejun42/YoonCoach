@@ -9,7 +9,7 @@ export const exerciseSchema = z.object({ id: z.string().min(1).max(180), name: z
 // Autosave must preserve a half-entered set too. Only complete sets enter metrics.
 export const setTypes = { normal: "일반", mini: "미니세트", drop: "드랍세트" } as const;
 export const setTypeSchema = z.enum(["normal", "mini", "drop"]).optional();
-export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable(), type: setTypeSchema });
+export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable(), type: setTypeSchema, completed: z.boolean().optional() });
 export const workoutEntrySchema = exerciseSchema.extend({ isMain: z.boolean(), sets: z.array(workoutSetSchema).min(1).max(50), settings: machineSettingsSchema });
 export const workoutEntriesSchema = z.array(workoutEntrySchema).max(60).refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length);
 export const workoutSaveSchema = z.object({ date: calendarDateSchema, revision: z.number().int().nonnegative(), entries: workoutEntriesSchema, note: z.string().trim().max(2000) });
@@ -31,7 +31,7 @@ export function newEntry(exercise: Exercise, settings?: MachineSetting[]): Worko
   return { id: exercise.id, name: exercise.name, tags: [...exercise.tags], equipment: exercise.equipment, isMain: false, sets: [blankSet()],
     settings: settings ? structuredClone(settings) : exercise.equipment === "machine" ? defaultMachineSettings() : [] };
 }
-export const recordedSets = (entry: WorkoutEntry) => entry.sets.filter((set): set is WorkoutSet & { weight: number; reps: number } => set.weight !== null && set.reps !== null && set.reps > 0);
+export const recordedSets = (entry: WorkoutEntry) => entry.sets.filter((set): set is WorkoutSet & { weight: number; reps: number } => set.completed !== false && set.weight !== null && set.reps !== null && set.reps > 0);
 
 export function representativeParts(entries: WorkoutEntry[]): ExerciseTag[] {
   const scores = new Map<ExerciseTag, { main: number; total: number }>();

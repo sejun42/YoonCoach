@@ -34,7 +34,7 @@ export async function GET() {
       const fields = { ...exerciseFields(entry), 운동순서: index + 1, 메인: entry.isMain ? "예" : "아니오",
         세팅: entry.settings.filter(s => s.value).map(s => s.label + "=" + s.value).join(" / ") };
       for (const [i, set] of entry.sets.entries()) {
-        rows.push({ 구분: "세트 기록", 날짜, ...fields, 세트: i + 1, 세트유형: setTypes[set.type ?? "normal"],
+        rows.push({ 구분: set.completed === false ? "미수행 계획" : "세트 기록", 날짜, ...fields, 세트: i + 1, 세트유형: setTypes[set.type ?? "normal"],
           "운동중량(kg)": set.weight, 횟수: set.reps });
       }
     }

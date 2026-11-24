@@ -79,9 +79,9 @@ export async function GET() {
     "# workout_body_parts",
     rowsToCsv(["date", "body_part"], workouts.map((row) => ({ date: toYmd(row.date), body_part: row.bodyPart }))),
     "", "# workout_sets",
-    rowsToCsv(["date", "exercise_id", "exercise", "tags", "main", "set", "weight_kg", "reps", "set_type", "settings"], sessions.flatMap((session) =>
+    rowsToCsv(["date", "exercise_id", "exercise", "tags", "main", "set", "weight_kg", "reps", "set_type", "settings", "completed"], sessions.flatMap((session) =>
       readEntries(session.entries).flatMap((entry) => entry.sets.map((set, index) => ({ date: toYmd(session.date), exercise_id: entry.id, exercise: entry.name,
-        tags: entry.tags.join("|"), main: entry.isMain, set: index + 1, weight_kg: set.weight, reps: set.reps, set_type: set.type ?? "normal", settings: JSON.stringify(entry.settings) }))))),
+        tags: entry.tags.join("|"), main: entry.isMain, set: index + 1, weight_kg: set.weight, reps: set.reps, set_type: set.type ?? "normal", completed: set.completed ?? (set.weight !== null && set.reps !== null), settings: JSON.stringify(entry.settings) }))))),
     "", "# workout_sessions",
     rowsToCsv(["date", "note", "entries_json"], sessions.map((session) => ({ date: toYmd(session.date), note: session.note, entries_json: JSON.stringify(session.entries) }))),
     "", "# workout_routines",

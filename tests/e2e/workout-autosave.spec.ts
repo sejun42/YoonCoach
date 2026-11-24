@@ -23,6 +23,25 @@ async function open(page: Page, date: string) {
   return page.getByRole("article", { name, exact: true });
 }
 
+test("pasted targets become recorded sets only when checked and survive reload", async ({ page, request }) => {
+  const date = "2026-02-01";
+  const card = await open(page, date);
+  await page.getByRole("button", { name: "GPT 루틴 붙여넣기" }).click();
+  await page.getByLabel("추천 루틴").fill(name + "|80|8|일반|2\n" + name + "|60|10|드랍세트|1");
+  await page.getByRole("button", { name: "이 날짜에 추가" }).click();
+  await expect(card.getByRole("checkbox")).toHaveCount(3);
+  await expect(page.locator(".session-summary")).toContainText("0세트");
+  await card.getByLabel("1세트 횟수", { exact: true }).fill("6");
+  await card.getByLabel("1세트 수행 완료").check();
+  await expect(page.locator(".session-summary")).toContainText("480kg·회");
+  await page.clock.runFor(5000);
+  await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
+  expect((await stored(request,date)).entries[0].sets[0]).toMatchObject({reps:6,completed:true});
+  await page.reload();
+  await expect(card.getByLabel("1세트 수행 완료")).toBeChecked();
+  await expect(card.getByLabel("2세트 수행 완료")).not.toBeChecked();
+});
+
 test("copy inserts the current set below without overwriting later sets and autosaves after five seconds", async ({ page, request }) => {
   const date = "2026-02-11";
   const card = await open(page, date);

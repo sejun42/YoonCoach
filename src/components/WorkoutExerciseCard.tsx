@@ -2,7 +2,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Copy, Info, Plus, Star, Trash2, TrendingUp, ArrowLeftRight } from "lucide-react";
 import { equipmentLabels } from "@/lib/exercise-catalog";
-import { blankSet, recordedSets, setTypes, type WorkoutEntry } from "@/lib/workouts";
+import { blankSet, wearableGear, recordedSets, setTypes, type WorkoutEntry } from "@/lib/workouts";
 import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import { useExerciseHistory } from "./WorkoutProgress";
 import SwipeSetRow from "./SwipeSetRow";
@@ -84,6 +84,16 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
         <div className="rir-ticks">{[0,1,2,3,4,5].map(n => <button type="button" key={n} aria-label={`RIR ${n}회`} aria-pressed={editingRir === n} onClick={() => changeRir(n)}>{n}</button>)}</div>
         <button type="button" className="text-button" disabled={editingRir === undefined} onClick={() => changeRir(undefined)}>RIR 지우기</button>
       </div>
+      <fieldset className="gear-control"><legend>착용 장비</legend>
+        {wearableGear.map(item => {
+          const gear = entry.sets[setIndexToEdit]?.gear ?? [];
+          const selected = gear.includes(item);
+          return <button type="button" key={item} aria-pressed={selected} onClick={() => {
+            const nextGear = selected ? gear.filter(value => value !== item) : [...gear, item];
+            onChange({ ...entry, sets: entry.sets.map((set, i) => i === setIndexToEdit ? { ...set, gear: nextGear } : set) });
+          }}>{item}</button>;
+        })}
+      </fieldset>
       <div className="set-type-options">{(Object.keys(setTypes) as (keyof typeof setTypes)[]).map((type) => <button type="button" key={type} aria-pressed={(entry.sets[setIndexToEdit]?.type ?? "normal") === type} onClick={() => {
         onChange({ ...entry, sets: entry.sets.map((set, i) => i === setIndexToEdit ? { ...set, type } : set) }); setSetIndexToEdit(null);
       }}><strong>{setTypes[type]}</strong><span>{type === "normal" ? "충분히 쉬고 다음 세트" : type === "mini" ? "짧게 쉬고 이어서 수행" : "무게를 낮춰 이어서 수행"}</span></button>)}</div>

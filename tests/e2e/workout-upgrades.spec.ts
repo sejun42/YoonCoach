@@ -169,6 +169,7 @@ test("set type survives local recovery, autosave, routine loading and export; in
   await signIn(page); await page.goto("/workouts/" + date);
   const card = page.getByRole("article", { name: entry.name });
   await card.getByRole("button", { name: "1세트 유형: 일반" }).click();
+  for (const item of ["벨트", "스트랩", "랩", "랩"]) await page.getByRole("button", {name:item,exact:true}).click();
   const slider = page.getByRole("slider", {name:"RIR", exact:true});
   await expect(slider).toHaveAttribute("aria-valuetext", "미기록");
   await slider.press("End");
@@ -183,7 +184,8 @@ test("set type survives local recovery, autosave, routine loading and export; in
   await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("60");
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다", { timeout: 10000 });
   const stored = (await (await request.get("/api/workouts?date=" + date, { headers: auth() })).json()).session;
-  expect(stored.entries[0].sets[1]).toEqual({ weight: 60, reps: 8, type: "mini" });
+  expect(stored.entries[0].sets[1]).toEqual({ weight: 60, reps: 8, type: "mini", gear: ["벨트", "스트랩"] });
+  expect(stored.entries[0].sets[0].gear).toEqual(["벨트", "스트랩"]);
   expect(stored.entries[0].sets[0].rir).toBe(0);
   const routine = await saveRoutine(request, "세트 유형 보존", stored.entries);
   expect(routine.entries[0].sets[1]).toEqual({ weight: null, reps: null, type: "mini" });

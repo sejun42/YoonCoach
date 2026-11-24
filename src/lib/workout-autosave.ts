@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { RequestError, requestJson } from "./tracker-client";
-import { sameWorkout, rirSchema, setTypeSchema, workoutEntrySchema, workoutSaveSchema, type WorkoutSession } from "./workouts";
+import { sameWorkout, gearSchema, rirSchema, setTypeSchema, workoutEntrySchema, workoutSaveSchema, type WorkoutSession } from "./workouts";
 
 // Local recovery must retain even out-of-range values while the user fixes them.
 const draftSchema = workoutSaveSchema.extend({ entries: z.array(workoutEntrySchema.extend({
-  sets: z.array(z.object({ weight: z.number().nullable(), reps: z.number().nullable(), type: setTypeSchema, rir: rirSchema, completed: z.boolean().optional() })).min(1).max(50)
+  sets: z.array(z.object({ weight: z.number().nullable(), reps: z.number().nullable(), type: setTypeSchema, rir: rirSchema, gear: gearSchema, completed: z.boolean().optional() })).min(1).max(50)
 })).max(60) });
 const recordSchema = z.object({ session: draftSchema, attempt: workoutSaveSchema.optional(), updatedAt: z.number() });
 type DraftRecord = z.infer<typeof recordSchema> & { needsCheck?: boolean };

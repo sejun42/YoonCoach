@@ -7,7 +7,7 @@ import { rowsToCsv } from "@/lib/export-csv";
 import { readEntries, userExercises } from "@/lib/services/workouts";
 import { setTypes } from "@/lib/workouts";
 
-const headers = ["구분", "날짜", "종목ID", "종목명", "출처", "기구", "부위", "운동순서", "메인", "세트", "세트유형", "운동중량(kg)", "횟수", "세팅", "메모", "체중(kg)", "RIR"];
+const headers = ["구분", "날짜", "종목ID", "종목명", "출처", "기구", "부위", "운동순서", "메인", "세트", "세트유형", "운동중량(kg)", "횟수", "세팅", "메모", "체중(kg)", "RIR", "착용 장비"];
 const partLabel = (key: string) => allBodyParts.find(part => part.key === key)?.label ?? key;
 function exerciseFields(exercise: Exercise) {
   return { 종목ID: exercise.id, 종목명: exercise.name, 기구: equipmentLabels[exercise.equipment], 부위: exercise.tags.map(partLabel).join(" / ") };
@@ -34,7 +34,7 @@ export async function GET() {
       const fields = { ...exerciseFields(entry), 운동순서: index + 1, 메인: entry.isMain ? "예" : "아니오",
         세팅: entry.settings.filter(s => s.value).map(s => s.label + "=" + s.value).join(" / ") };
       for (const [i, set] of entry.sets.entries()) {
-        rows.push({ 구분: set.completed === false ? "미수행 계획" : "세트 기록", 날짜, ...fields, 세트: i + 1, RIR: set.rir, 세트유형: setTypes[set.type ?? "normal"],
+        rows.push({ 구분: set.completed === false ? "미수행 계획" : "세트 기록", 날짜, ...fields, 세트: i + 1, RIR: set.rir, "착용 장비": set.gear?.join(" / "), 세트유형: setTypes[set.type ?? "normal"],
           "운동중량(kg)": set.weight, 횟수: set.reps });
       }
     }

@@ -454,6 +454,10 @@ label { font-size: 12px; color: #afbdd3; }
 .set-type-options { display: grid; gap: 8px; }
 .set-type-options button { text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--bg); }
 .set-type-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-light); }
+.gear-control { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+.gear-control legend { margin-bottom: 6px; }
+.gear-control button { padding: 7px 12px; border: 1px solid var(--line); color: var(--muted); border-radius: 18px; }
+.gear-control button[aria-pressed="true"] { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .rir-control { margin-bottom: 12px; }
 .rir-control label { display: block; }
 .rir-control strong { float: right; color: var(--accent); }

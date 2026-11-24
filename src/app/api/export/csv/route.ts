@@ -4,22 +4,7 @@ import { db } from "@/lib/db";
 import { toYmd } from "@/lib/date";
 import { readEntries } from "@/lib/services/workouts";
 
-function csvEscape(value: unknown) {
-  const text = value === null || value === undefined ? "" : String(value);
-  const raw = typeof value === "string" && /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
-  if (raw.includes(",") || raw.includes('"') || raw.includes("\n")) {
-    return `"${raw.replace(/"/g, '""')}"`;
-  }
-  return raw;
-}
-
-function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>) {
-  const lines = [
-    headers.join(","),
-    ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(","))
-  ];
-  return lines.join("\n");
-}
+import { rowsToCsv } from "@/lib/export-csv";
 
 export async function GET() {
   const auth = await requireAuth();

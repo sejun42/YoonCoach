@@ -18,7 +18,7 @@ export class WorkoutAutosave {
   private inFlight = new Set<string>();
   private active = false;
   private prefix: string;
-  constructor(private userId: string, private onSaved: (session: WorkoutSession) => Promise<void>) {
+  constructor(readonly userId: string, private onSaved: (session: WorkoutSession) => Promise<void>) {
     this.prefix = "yooncoach:workout-draft:v1:" + encodeURIComponent(userId) + ":";
   }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };

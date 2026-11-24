@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Timer, X } from "lucide-react";
 
 export default function RestTimer({ start, onClose }: { start: number; onClose: () => void }) {
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds] = useState(() => Math.max(0, Math.floor((Date.now() - start) / 1000)));
   useEffect(() => {
     const update = () => setSeconds(Math.max(0, Math.floor((Date.now() - start) / 1000)));
     const interval = window.setInterval(update, 1000);

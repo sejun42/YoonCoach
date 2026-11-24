@@ -20,6 +20,6 @@ export function WorkoutDrafts({ children, userId }: { children: ReactNode; userI
 export function useWorkoutDraft(date: string) {
   const manager = useContext(DraftContext)!;
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot, manager.getSnapshot);
-  return { draft: snapshot.records[date]?.session, setDraft: (value: WorkoutSession | null) => manager.setDraft(date, value),
+  return { userId: manager.userId, draft: snapshot.records[date]?.session, setDraft: (value: WorkoutSession | null) => manager.setDraft(date, value),
     save: () => manager.save(date, true), state: snapshot.states[date], ready: snapshot.ready, storageError: snapshot.storageError };
 }

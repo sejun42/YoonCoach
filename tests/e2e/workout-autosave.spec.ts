@@ -41,6 +41,19 @@ test("pasted targets become recorded sets only when checked and survive reload",
   expect((await stored(request,date)).entries[0].sets[0]).toMatchObject({reps:6,completed:true});
   await page.clock.runFor(60000);
   await expect(timer).toHaveText("1분 05초");
+  await card.getByRole("button", {name:"1세트 유형: 일반"}).click();
+  await page.getByRole("button", {name:"RIR 2회",exact:true}).click();
+  await page.getByRole("button", {name:"닫기",exact:true}).click();
+  await expect(timer).toHaveText("1분 05초");
+  const start = await page.evaluate(() => Date.now());
+  await page.goto("/body-parts");
+  await page.clock.fastForward(30000);
+  await page.goto("/workouts/" + date);
+  await expect(timer).toBeVisible();
+  const elapsed = await page.evaluate(first => Math.floor((Date.now() - first) / 1000) + 65, start);
+  await expect(timer).toHaveText(Math.floor(elapsed / 60) + "분 " + String(elapsed % 60).padStart(2,"0") + "초");
+  await page.reload();
+  await expect(timer).toBeVisible();
   await card.getByLabel("2세트 수행 완료").check();
   await expect(timer).toHaveText("0분 00초");
   await page.clock.runFor(1000);
@@ -50,6 +63,7 @@ test("pasted targets become recorded sets only when checked and survive reload",
   await expect(timer).toHaveCount(0);
   await page.reload();
   await expect(card.getByLabel("1세트 수행 완료")).toBeChecked();
+  await expect(timer).toHaveCount(0);
   await expect(card.getByLabel("2세트 수행 완료")).not.toBeChecked();
 });
 

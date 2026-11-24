@@ -12,6 +12,7 @@ import PlanImport from "./PlanImport";
 import ExercisePicker from "./ExercisePicker";
 import MachineSettings from "./MachineSettings";
 import { PartTags, WorkoutDialog } from "./WorkoutPrimitives";
+import RestTimer from "./RestTimer";
 import WorkoutExerciseCard from "./WorkoutExerciseCard";
 import WorkoutProgress from "./WorkoutProgress";
 import { useWorkoutDraft } from "./WorkoutDrafts";
@@ -24,6 +25,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
   const { data: library, error: libraryError, mutate: reloadLibrary } = useSWR<WorkoutLibrary>("/api/workouts/library");
   const { draft, setDraft, save: saveDraft, state: saveState, ready, storageError } = useWorkoutDraft(date);
   const saving = saveState?.kind === "saving";
+  const [rest, setRest] = useState<{date: string; start: number} | null>(null);
   const [importing, setImporting] = useState(false);
   const [picker, setPicker] = useState(false);
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -111,6 +113,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
   if (!ready || (!data && !draft)) return <div className="screen-content"><Link className="back-link" href="/body-parts"><ArrowLeft size={16} />운동 캘린더</Link>{error ? <div role="alert" className="notice error">운동 기록을 불러오지 못했습니다. <button onClick={() => void mutate()}>다시 시도</button></div> : <div className="loading-state">운동 기록과 임시 입력을 불러오는 중입니다.</div>}</div>;
 
   return <div className="screen-content workout-screen">
+    {rest?.date === date && <RestTimer key={rest.start} start={rest.start} onClose={() => setRest(null)} />}
     <Link className="back-link" href="/body-parts"><ArrowLeft size={16} />운동 캘린더</Link>
     <div className="page-heading"><div><p className="eyebrow">DAILY TRAINING</p><h1>{Number(date.slice(5, 7))}월 {Number(date.slice(8))}일 운동</h1><p className="workout-date">{date} · {new Date(date + "T12:00:00Z").toLocaleDateString("ko-KR", { weekday: "long", timeZone: "UTC" })}</p></div><span className={dirty ? "save-state pending" : "save-state"}>{saving ? "저장 중" : saveFailed ? "저장 확인 필요" : dirty ? "자동 저장 대기" : session?.revision ? "저장됨" : "새 기록"}</span></div>
     <p className="workout-help">입력을 멈추면 5초 후 자동 저장됩니다. 무게나 횟수만 입력한 세트도 보관됩니다.</p>
@@ -130,6 +133,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
         <button type="button" className="btn btn-ghost" disabled={!library} onClick={() => setImporting(true)}>GPT 루틴 붙여넣기</button>
         <div className="workout-cards">{entries.map((entry, index) => <WorkoutExerciseCard key={entry.id} entry={entry} index={index} count={entries.length} date={date} today={today} onChange={updateEntry}
           onReplace={() => { setInsertingAfterId(null); setReplacingId(entry.id); setPicker(true); }}
+          onSetCompleted={() => setRest({date, start: Date.now()})}
           canAdd={!!library && entries.length < 60} onAddAfter={() => { setReplacingId(null); setInsertingAfterId(entry.id); setPicker(true); }}
           onSettings={() => setSettingsId(entry.id)} onProgress={() => { setGraphId(entry.id); document.getElementById("workout-progress")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
           onRemove={() => { if (recordedSets(entry).length && !window.confirm(entry.name + "의 세트 기록을 삭제할까요?")) return; edit(entries.filter((item) => item.id !== entry.id)); }}

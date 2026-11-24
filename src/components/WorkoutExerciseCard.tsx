@@ -7,8 +7,8 @@ import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import { useExerciseHistory } from "./WorkoutProgress";
 import SwipeSetRow from "./SwipeSetRow";
 
-export default function WorkoutExerciseCard({ entry, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd }: {
-  entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean;
+export default function WorkoutExerciseCard({ entry, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd, onSetCompleted }: {
+  entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean; onSetCompleted: () => void;
 }) {
   const [editingTags, setEditingTags] = useState(false);
   const [setIndexToEdit, setSetIndexToEdit] = useState<number | null>(null);
@@ -46,7 +46,11 @@ export default function WorkoutExerciseCard({ entry, index, count, date, today, 
           onChange={(event) => onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, weight: event.target.value === "" ? null : Number(event.target.value) } : item) })} />
         <input className="field" type="number" inputMode="numeric" min={1} max={1000} step={1} aria-label={(setIndex + 1) + "세트 횟수"} value={set.reps ?? ""} placeholder={String(previousSets[setIndex]?.reps ?? "10")}
           onChange={(event) => onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, reps: event.target.value === "" ? null : Number(event.target.value) } : item) })} />
-        <span className="set-actions">{set.completed !== undefined && <input type="checkbox" aria-label={`${setIndex + 1}세트 수행 완료`} checked={set.completed} disabled={!set.completed && (set.weight === null || set.reps === null || set.reps < 1)} onChange={event => onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, completed: event.target.checked } : item) })} />}<button type="button" className="icon-button" title={entry.sets.length >= 50 ? "세트는 최대 50개까지 추가할 수 있습니다" : "이 세트를 복사해 바로 아래에 추가"} aria-label={(setIndex + 1) + "세트 복사해 아래에 추가"}
+        <span className="set-actions">{set.completed !== undefined && <input type="checkbox" aria-label={`${setIndex + 1}세트 수행 완료`} checked={set.completed} disabled={!set.completed && (set.weight === null || set.reps === null || set.reps < 1)} onChange={event => {
+          const completed = event.currentTarget.checked;
+          onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, completed } : item) });
+          if (completed) onSetCompleted();
+        }} />}<button type="button" className="icon-button" title={entry.sets.length >= 50 ? "세트는 최대 50개까지 추가할 수 있습니다" : "이 세트를 복사해 바로 아래에 추가"} aria-label={(setIndex + 1) + "세트 복사해 아래에 추가"}
           disabled={entry.sets.length >= 50 || (set.weight === null && set.reps === null)}
           onClick={() => {
             setOpenSet(null);

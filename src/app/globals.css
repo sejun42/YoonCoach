@@ -48,6 +48,9 @@
 .set-grid .icon-button { width: 30px; height: 40px; }
 .planned-grid, .planned-grid .set-row { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 60px; }
 .planned-grid input[type="checkbox"] { width: 22px; height: 22px; margin: 0 4px; accent-color: var(--accent); }
+.rest-timer { position: fixed; z-index: 39; bottom: calc(76px + env(safe-area-inset-bottom)); right: max(12px, calc((100vw - 1000px) / 2)); display: flex; align-items: center; gap: 7px; padding: 0 5px 0 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 22px; box-shadow: 0 3px 14px #0005; font-size: 13px; }
+.rest-timer strong { font-variant-numeric: tabular-nums; }
+.rest-timer .icon-button { width: 32px; height: 36px; }
 .set-actions { display: flex; align-items: center; }
 .set-actions .icon-button { height: 40px; flex-basis: 30px; }
 .set-number { font-size: 12px; border-radius: 5px; padding: 3px 0; }

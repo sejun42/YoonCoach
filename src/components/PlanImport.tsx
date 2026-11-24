@@ -8,7 +8,10 @@ const instruction = "추천한 루틴을 YoonCoach에 넣을 수 있게 운동 �
 
 function parsePlan(text: string, library: WorkoutLibrary) {
   const plan = new Map<string, WorkoutEntry>();
-  const lines = text.trim().replace(/^\x60{3}[^\n]*\n|\n\x60{3}$/g, "").split(/\r?\n/);
+  const lines = text.trim().replace(/^\x60{3}[^\n]*\n|\n\x60{3}$/g, "")
+    // Mobile copy can flatten line breaks. Only split after a type and set count.
+    .replace(/(\|[^\S\r\n]*(?:일반|미니세트|드랍세트)[^\S\r\n]*\|[^\S\r\n]*\d+)[^\S\r\n]+(?=[^\s|])/gu, "$1\n")
+    .split(/\r?\n/);
   for (const [i, line] of lines.entries()) {
     if (!line.trim()) continue;
     const fields = line.split("|").map(field => field.trim());
@@ -17,8 +20,8 @@ function parsePlan(text: string, library: WorkoutLibrary) {
     const type = (Object.keys(setTypes) as (keyof typeof setTypes)[]).find(key => setTypes[key] === label);
     if (fields.length !== 5 || !type || !/^\d+(\.\d+)?$/.test(weight) || +weight > 2000 ||
         !/^\d+$/.test(reps) || +reps < 1 || +reps > 1000 || !/^\d+$/.test(count) || +count < 1 || +count > 50)
-      throw new Error(`${i+1}번째 줄의 중량·횟수·유형·세트수를 확인하세요.`);
-    if (matches.length !== 1) throw new Error(`${i+1}번째 줄 ‘${name}’: CSV의 정확한 종목명 또는 종목ID를 사용하세요.`);
+      throw new Error(`${i+1}번째 항목의 중량·횟수·유형·세트수를 확인하세요.`);
+    if (matches.length !== 1) throw new Error(`${i+1}번째 항목 ‘${name}’: CSV의 정확한 종목명 또는 종목ID를 사용하세요.`);
     const exercise = matches[0];
     const entry = plan.get(exercise.id) ?? { ...newEntry(exercise, library.preferences[exercise.id]), sets: [] };
     if (entry.sets.length + +count > 50) throw new Error(exercise.name + "은 최대 50세트입니다.");

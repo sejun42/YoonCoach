@@ -69,7 +69,7 @@ test("API rejects malformed and foreign entries, handles conflicts, and isolates
   expect(foreign.status()).toBe(400);
   const routine = await request.put("/api/workouts/routines", { headers: auth(), data: { name: "QA 루틴", entries: [entry] } });
   const routineData = await routine.json();
-  expect(routineData.routine.entries[0].sets).toEqual([{ weight: null, reps: null }]);
+  expect(routineData.routine.entries[0].sets).toEqual([{ weight: null, reps: null, completed: false }]);
   await request.delete("/api/workouts/routines?id=" + routineData.routine.id, { headers: auth("other-user") });
   const library = await (await request.get("/api/workouts/library", { headers: auth() })).json();
   expect(library.routines.some((item: { id: string }) => item.id === routineData.routine.id)).toBe(true);
@@ -118,6 +118,8 @@ test("calendar opens a separate journal; mobile recording, settings, routines, r
   await card.getByRole("button", { name: "세트 추가", exact: true }).click();
   await card.getByLabel("2세트 무게", { exact: true }).fill("60");
   await card.getByLabel("2세트 횟수", { exact: true }).fill("12");
+  await card.getByLabel("1세트 수행 완료").check();
+  await card.getByLabel("2세트 수행 완료").check();
   await card.getByRole("button", { name: "메인", exact: true }).click();
   await card.getByRole("button", { name: "해머 MTS 체스트 프레스 세부 설정", exact: true }).click();
   await page.getByLabel("안장 높이", { exact: true }).fill("5");

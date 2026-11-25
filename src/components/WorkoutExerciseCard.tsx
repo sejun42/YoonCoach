@@ -6,14 +6,14 @@ import { equipmentLabels, hasGymSelector } from "@/lib/exercise-catalog";
 import { blankSet, wearableGear, recordedSets, setTypes, type WorkoutEntry } from "@/lib/workouts";
 import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import { useExerciseHistory } from "./WorkoutProgress";
-import SwipeSetRow from "./SwipeSetRow";
+import SwipeSetRow, { type SwipeAction } from "./SwipeSetRow";
 
 export default function WorkoutExerciseCard({ entry, gyms, index, count, date, today, onChange, onRemove, onMove, onSettings, onProgress, onReplace, onAddAfter, canAdd, onSetCompleted }: {
   gyms?: string[]; entry: WorkoutEntry; index: number; count: number; date: string; today: string; onChange: (entry: WorkoutEntry) => void; onRemove: () => void; onMove: (direction: number) => void; onSettings: () => void; onProgress: () => void; onReplace: () => void; onAddAfter: () => void; canAdd: boolean; onSetCompleted: () => void;
 }) {
   const [editingTags, setEditingTags] = useState(false);
   const [setIndexToEdit, setSetIndexToEdit] = useState<number | null>(null);
-  const [openSet, setOpenSet] = useState<number | null>(null);
+  const [openSet, setOpenSet] = useState<{ index: number; action: SwipeAction } | null>(null);
   const editingRir = setIndexToEdit === null ? undefined : entry.sets[setIndexToEdit]?.rir;
   function changeRir(rir: number | undefined) {
     if (setIndexToEdit === null || rir === editingRir) return;
@@ -44,29 +44,33 @@ export default function WorkoutExerciseCard({ entry, gyms, index, count, date, t
     {gyms && hasGymSelector(entry.equipment) && <GymSelector exerciseId={entry.id} gyms={gyms} />}
     {editingTags && <div className="card-tag-editor"><p className="workout-help">대표 부위 1–2개를 선택하세요. 두 태그는 세트 점수를 절반씩 나눕니다.</p><TagPicker tags={entry.tags} onChange={(tags) => { if (tags.length) onChange({ ...entry, tags }); }} /></div>}
     <div className="previous-workout"><span>지난 기록</span><p>{previous ? previous.date.slice(5).replace("-", "/") + " · " + previousSets.map((set) => set.weight + "kg × " + set.reps).join(" / ") : error ? "불러오지 못했습니다" : data ? "첫 기록을 시작해 보세요" : "불러오는 중"}</p></div>
-    <div className={"set-grid" + (entry.sets.some(s => s.completed !== undefined) ? " planned-grid" : "")}><span>세트</span><span>무게 (kg)</span><span>횟수</span><span><span className="sr-only">세트 복사 및 삭제</span></span>
-      {entry.sets.map((set, setIndex) => <SwipeSetRow key={setIndex} number={setIndex + 1} open={openSet === setIndex} disabled={entry.sets.length === 1}
-        onOpen={(open) => setOpenSet((current) => open ? setIndex : current === setIndex ? null : current)}
+    <div className="set-grid planned-grid"><span>세트</span><span>무게 (kg)</span><span>횟수</span><span><span className="sr-only">세트 복사 및 삭제</span></span>
+      {entry.sets.map((set, setIndex) => <SwipeSetRow key={setIndex} number={setIndex + 1} open={openSet?.index === setIndex ? openSet.action : null} canDelete={entry.sets.length > 1} canInsert={entry.sets.length < 50}
+        onOpen={action => setOpenSet(current => action ? { index: setIndex, action } : current?.index === setIndex ? null : current)}
+        onInsert={() => {
+          onChange({ ...entry, sets: [...entry.sets.slice(0, setIndex + 1), blankSet(), ...entry.sets.slice(setIndex + 1)] });
+          setSetIndexToEdit(setIndex + 1);
+        }}
         onDelete={() => onChange({ ...entry, sets: entry.sets.filter((_, i) => i !== setIndex) })}>
         <button type="button" className={"set-number" + (set.completed !== false && set.weight !== null && set.reps !== null ? " recorded" : "")} aria-label={`${setIndex + 1}세트 유형: ${setTypes[set.type ?? "normal"]}`} onClick={() => setSetIndexToEdit(setIndex)}>{setIndex + 1}{set.type && set.type !== "normal" && <small>{set.type === "mini" ? "미니" : "드랍"}</small>}</button>
         <input className="field" type="number" inputMode="decimal" min={0} max={2000} step="any" aria-label={(setIndex + 1) + "세트 무게"} value={set.weight ?? ""} placeholder={String(previousSets[setIndex]?.weight ?? "0")}
           onChange={(event) => onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, weight: event.target.value === "" ? null : Number(event.target.value) } : item) })} />
         <input className="field" type="number" inputMode="numeric" min={1} max={1000} step={1} aria-label={(setIndex + 1) + "세트 횟수"} value={set.reps ?? ""} placeholder={String(previousSets[setIndex]?.reps ?? "10")}
           onChange={(event) => onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, reps: event.target.value === "" ? null : Number(event.target.value) } : item) })} />
-        <span className="set-actions">{set.completed !== undefined && <input type="checkbox" aria-label={`${setIndex + 1}세트 수행 완료`} checked={set.completed} disabled={!set.completed && (set.weight === null || set.reps === null || set.reps < 1)} onChange={event => {
+        <span className="set-actions"><input type="checkbox" aria-label={`${setIndex + 1}세트 수행 완료`} checked={set.completed ?? (set.weight !== null && set.reps !== null)} disabled={!set.completed && (set.weight === null || set.reps === null || set.reps < 1)} onChange={event => {
           const completed = event.currentTarget.checked;
           onChange({ ...entry, sets: entry.sets.map((item, i) => i === setIndex ? { ...item, completed } : item) });
           if (completed) onSetCompleted();
-        }} />}<button type="button" className="icon-button" title={entry.sets.length >= 50 ? "세트는 최대 50개까지 추가할 수 있습니다" : "이 세트를 복사해 바로 아래에 추가"} aria-label={(setIndex + 1) + "세트 복사해 아래에 추가"}
+        }} /><button type="button" className="icon-button" title={entry.sets.length >= 50 ? "세트는 최대 50개까지 추가할 수 있습니다" : "이 세트를 복사해 바로 아래에 추가"} aria-label={(setIndex + 1) + "세트 복사해 아래에 추가"}
           disabled={entry.sets.length >= 50 || (set.weight === null && set.reps === null)}
           onClick={() => {
             setOpenSet(null);
-            onChange({ ...entry, sets: [...entry.sets.slice(0, setIndex + 1), { ...set, rir: undefined, ...(set.completed !== undefined && { completed: false }) }, ...entry.sets.slice(setIndex + 1)] });
+            onChange({ ...entry, sets: [...entry.sets.slice(0, setIndex + 1), { ...set, rir: undefined, completed: false }, ...entry.sets.slice(setIndex + 1)] });
           }}><Copy size={15} /></button>
         </span>
       </SwipeSetRow>)}
     </div>
-    <button type="button" className="add-set" disabled={entry.sets.length >= 50} onClick={() => onChange({ ...entry, sets: [...entry.sets, { ...blankSet(), ...(entry.sets.some(s => s.completed !== undefined) && { completed: false }) }] })}><Plus size={16} />세트 추가</button>
+    <button type="button" className="add-set" disabled={entry.sets.length >= 50} onClick={() => onChange({ ...entry, sets: [...entry.sets, blankSet()] })}><Plus size={16} />세트 추가</button>
     {!!entry.settings.filter((item) => item.value).length && <button className="settings-summary" type="button" onClick={onSettings}><Info size={13} />{entry.settings.filter((item) => item.value).map((item) => item.label + " " + item.value).join(" · ")}</button>}
     <div className="workout-card-footer"><div>
       <button type="button" className="icon-button" title="성장 보기" aria-label={entry.name + " 성장 보기"} onClick={onProgress}><TrendingUp size={17} /></button>

@@ -134,7 +134,7 @@ test("copy inserts the current set below without overwriting later sets and auto
   await page.clock.runFor(1);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
   expect(writes).toBe(1);
-  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 65, reps: 8 }, { weight: 64, reps: 8 }, { weight: 60, reps: 12 }, { weight: 55, reps: 10 }]);
+  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 65, reps: 8, completed: false }, { weight: 64, reps: 8, completed: false }, { weight: 60, reps: 12, completed: false }, { weight: 55, reps: 10, completed: false }]);
   await page.reload();
   await expect(card.getByLabel("4세트 횟수", { exact: true })).toHaveValue("10");
   for (const width of [320, 390, 1280]) {
@@ -151,12 +151,14 @@ test("partial sets survive autosave and reload without being counted as complete
   await card.getByLabel("1세트 무게", { exact: true }).fill("70");
   await page.clock.runFor(5000);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
-  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 70, reps: null }]);
+  expect((await stored(request, date)).entries[0].sets).toEqual([{ weight: 70, reps: null, completed: false }]);
   await expect(page.locator(".session-summary")).toContainText("0세트");
   await page.reload();
   await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("70");
   await expect(card.getByLabel("1세트 횟수", { exact: true })).toHaveValue("");
   await card.getByLabel("1세트 횟수", { exact: true }).fill("9");
+  await expect(page.locator(".session-summary")).toContainText("0세트");
+  await card.getByLabel("1세트 수행 완료").check();
   await page.clock.runFor(5000);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
   await expect(page.locator(".session-summary")).toContainText("1세트");
@@ -176,7 +178,7 @@ test("failed saves retain local inputs through reload and retry after reconnect"
   await page.unroute("**/api/workouts");
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
-  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 72.5, reps: 7 });
+  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 72.5, reps: 7, completed: false });
 });
 
 test("slow responses cannot erase typing made while a save is in flight", async ({ page, request }) => {
@@ -208,7 +210,7 @@ test("the pending save continues after navigating away from the workout", async 
   await page.getByRole("link", { name: "운동 캘린더", exact: true }).click();
   await expect(page.locator(".workout-screen")).toHaveCount(0);
   await page.clock.runFor(5000);
-  await expect.poll(async () => (await stored(request, date)).entries[0]?.sets[0]).toEqual({ weight: 0, reps: 15 });
+  await expect.poll(async () => (await stored(request, date)).entries[0]?.sets[0]).toEqual({ weight: 0, reps: 15, completed: false });
 });
 
 test("a committed save with a lost response is reconciled after reload before newer edits are saved", async ({ page, request }) => {
@@ -268,13 +270,13 @@ test("inputs are durably staged immediately, even before the first debounce comp
   await card.getByLabel("1세트 무게", { exact: true }).fill("82.5");
   await card.getByLabel("1세트 횟수", { exact: true }).fill("6");
   const recovery = await page.evaluate((date) => JSON.parse(localStorage.getItem("yooncoach:workout-draft:v1:qa-user:" + date)!), date);
-  expect(recovery.session.entries[0].sets[0]).toEqual({ weight: 82.5, reps: 6 });
+  expect(recovery.session.entries[0].sets[0]).toEqual({ weight: 82.5, reps: 6, completed: false });
   await page.reload();
   await expect(card.getByLabel("1세트 무게", { exact: true })).toHaveValue("82.5");
   await expect(card.getByLabel("1세트 횟수", { exact: true })).toHaveValue("6");
   await page.clock.runFor(5000);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
-  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 82.5, reps: 6 });
+  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 82.5, reps: 6, completed: false });
 });
 
 test("out-of-range inputs remain recoverable until corrected instead of silently disappearing", async ({ page, request }) => {
@@ -308,5 +310,5 @@ test("unavailable local storage is clearly reported without preventing server sa
   await expect(page.getByRole("alert").filter({ hasText: "임시 입력을 보관하지 못했습니다" })).toBeVisible();
   await page.clock.runFor(5000);
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다");
-  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 50, reps: 10 });
+  expect((await stored(request, date)).entries[0].sets[0]).toEqual({ weight: 50, reps: 10, completed: false });
 });

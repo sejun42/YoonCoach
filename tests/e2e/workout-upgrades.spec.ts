@@ -34,7 +34,7 @@ test("shared snapshots omit private values, import private machines safely, are 
   const { api } = await shareRoutine(request, original.id, "share-owner");
   const publicData = await (await request.get(api)).json();
   expect(Object.keys(publicData.routine).sort()).toEqual(["entries", "name"]);
-  expect(publicData.routine.entries[0].sets).toEqual([{ weight: null, reps: null, type: "mini" }]);
+  expect(publicData.routine.entries[0].sets).toEqual([{ weight: null, reps: null, completed: false, type: "mini" }]);
   expect(publicData.routine.entries[0].settings).toEqual([]);
   expect(JSON.stringify(publicData)).not.toContain("공개 금지");
   expect((await request.post(api)).status()).toBe(401);
@@ -206,11 +206,11 @@ test("set type survives local recovery, autosave, routine loading and export; in
   await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("60");
   await expect(page.getByRole("status")).toContainText("자동 저장했습니다", { timeout: 10000 });
   const stored = (await (await request.get("/api/workouts?date=" + date, { headers: auth() })).json()).session;
-  expect(stored.entries[0].sets[1]).toEqual({ weight: 60, reps: 8, type: "mini", gear: ["벨트", "스트랩"] });
+  expect(stored.entries[0].sets[1]).toEqual({ weight: 60, reps: 8, type: "mini", gear: ["벨트", "스트랩"], completed: false });
   expect(stored.entries[0].sets[0].gear).toEqual(["벨트", "스트랩"]);
   expect(stored.entries[0].sets[0].rir).toBe(0);
   const routine = await saveRoutine(request, "세트 유형 보존", stored.entries);
-  expect(routine.entries[0].sets[1]).toEqual({ weight: null, reps: null, type: "mini" });
+  expect(routine.entries[0].sets[1]).toEqual({ weight: null, reps: null, type: "mini", completed: false });
   const csv = await (await request.get("/api/export/csv", { headers: auth() })).text();
   expect(csv).toContain("set_type"); expect(csv).toContain(",mini,");
   expect(routineEntries(stored.entries)[0].sets[1].type).toBe("mini");

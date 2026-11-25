@@ -57,6 +57,25 @@ test("touch swipe reveals red action, cancels safely, deletes only on tap and au
   await expect(card.getByLabel("2세트 횟수", { exact: true })).toHaveValue("12");
 });
 
+test("right swipe inserts an unchecked set between recorded sets", async ({ page }) => {
+  const card = await open(page, "2026-03-04");
+  await touchSwipe(page, 1, 90);
+  await card.getByRole("button", { name: "1세트 아래에 빈 세트 추가" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /미니세트/ }).click();
+  await expect(card.getByLabel("2세트 유형: 미니세트")).toBeVisible();
+  await expect(card.getByLabel("2세트 수행 완료")).not.toBeChecked();
+  await expect(card.getByLabel("2세트 무게", { exact: true })).toHaveValue("");
+  await expect(card.getByLabel("3세트 수행 완료")).toBeChecked();
+  await expect(card.getByLabel("3세트 무게", { exact: true })).toHaveValue("55");
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/workouts?date=2026-03-04", { headers: auth });
+    return (await response.json()).session.entries[0].sets[1];
+  }, { timeout: 20000 }).toEqual({ weight: null, reps: null, completed: false, type: "mini" });
+  await page.reload();
+  await expect(card.getByLabel("2세트 유형: 미니세트")).toBeVisible();
+  await expect(card.getByLabel("3세트 유형: 드랍세트")).toBeVisible();
+});
+
 test("vertical scrolling, short drags and typing do not reveal or delete; keyboard and single-row guard work", async ({ page }) => {
   const card = await open(page, "2026-03-02");
   await touchSwipe(page, 2, -15);

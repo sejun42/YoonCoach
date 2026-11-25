@@ -30,7 +30,7 @@ export type Routine = { id: string; name: string; entries: WorkoutEntry[]; prese
 export type WorkoutHistory = { date: string; entry: WorkoutEntry };
 export type WorkoutLibrary = { gyms: Record<string, string[]>; exercises: Exercise[]; preferences: Record<string, MachineSetting[]>; routines: Routine[] };
 export const defaultMachineSettings = (): MachineSetting[] => [{ label: "안장 높이", value: "" }, { label: "가슴 패드", value: "" }];
-export const blankSet = (): WorkoutSet => ({ weight: null, reps: null });
+export const blankSet = (): WorkoutSet => ({ weight: null, reps: null, completed: false });
 export function newEntry(exercise: Exercise, settings?: MachineSetting[]): WorkoutEntry {
   return { id: exercise.id, name: exercise.name, tags: [...exercise.tags], equipment: exercise.equipment, isMain: false, sets: [blankSet()],
     settings: settings ? structuredClone(settings) : exercise.equipment === "machine" ? defaultMachineSettings() : [] };

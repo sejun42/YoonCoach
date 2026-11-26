@@ -36,19 +36,34 @@ export default function PlanImport({library, entries, onClose, onApply}: {
 }) {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState("");
+  const retained = entries.map(entry => ({ ...entry, sets: entry.sets.filter(set =>
+    set.completed === true || (set.completed === undefined && (set.weight !== null || set.reps !== null))
+  ) })).filter(entry => entry.sets.length);
+  const pending = entries.reduce((count, entry) => count + entry.sets.length, 0)
+    - retained.reduce((count, entry) => count + entry.sets.length, 0);
+  const reset = text.trim() === "0";
+  function clearPlan() {
+    if (pending && window.confirm(`이 날짜의 미수행 세트 ${pending}개를 지울까요?`)) onApply(retained);
+  }
   let error = "";
   let plan: WorkoutEntry[] = [];
-  let next = entries.slice();
+  let next: WorkoutEntry[] = [];
   try {
-    plan = parsePlan(text, library);
+    plan = reset ? [] : parsePlan(text, library);
+    const plannedIds = new Set(plan.map(entry => entry.id));
+    next = retained.filter(entry => !plannedIds.has(entry.id));
     for (const exercise of plan) {
-      const index = next.findIndex(e => e.id === exercise.id);
-      if (index < 0) next.push(exercise);
-      else {
-        const old = next[index];
-        const onlyBlank = old.sets.length === 1 && old.sets[0].weight === null && old.sets[0].reps === null && !old.sets[0].type;
-        next[index] = { ...old, sets: [...(onlyBlank ? [] : old.sets), ...exercise.sets] };
-      }
+      const old = entries.find(entry => entry.id === exercise.id);
+      // A performed set occupies its original slot even if the actual weight or reps changed.
+      const sets = exercise.sets.slice();
+      const keep = retained.find(entry => entry.id === exercise.id);
+      old?.sets.forEach((set, index) => {
+        if (keep?.sets.includes(set)) {
+          if (index < exercise.sets.length) sets[index] = set;
+          else sets.push(set);
+        }
+      });
+      next.push({ ...(old ?? exercise), sets });
     }
     if (!workoutEntriesSchema.safeParse(next).success) error = "기존 기록을 포함해 최대 60종목, 종목당 50세트까지 추가할 수 있습니다. 기존 입력값도 확인하세요.";
   } catch (e) { error = e instanceof Error ? e.message : "루틴을 확인하세요."; next = []; }
@@ -61,7 +76,8 @@ export default function PlanImport({library, entries, onClose, onApply}: {
     }}>GPT 요청문 복사</button> <span role="status">{copied}</span>
     <label>추천 루틴<textarea className="field" rows={6} maxLength={80000} value={text} onChange={e => setText(e.target.value)} placeholder="바벨 플랫 벤치프레스|80|8|일반|3" /></label>
     {error ? <p role="alert">{error}</p> : plan.map(e => <p key={e.id}>{e.name} · {e.sets.length}세트</p>)}
-    <p className="workout-help">같은 종목은 기존 세트 아래에 추가됩니다. 수행한 세트만 체크하세요.</p>
-    <button type="button" className="btn btn-primary" disabled={!!error || !plan.length} onClick={() => onApply(next)}>이 날짜에 추가</button>
+    <p className="workout-help">수정할 때는 하루 전체 루틴을 붙여넣으세요. 미수행 계획을 교체하고 완료한 세트와 메모는 유지합니다.</p>
+    {!reset && <button type="button" className="btn btn-primary" disabled={!!error || !plan.length} onClick={() => onApply(next)}>{entries.length ? "이 날짜의 계획 교체" : "이 날짜에 추가"}</button>}
+    <button type="button" className="btn btn-ghost" disabled={!pending} onClick={clearPlan}>이 날짜의 미수행 계획 비우기</button>
   </WorkoutDialog>;
 }

@@ -60,7 +60,7 @@ test("pasted targets become recorded sets only when checked and survive reload",
   const card = await open(page, date);
   await page.getByRole("button", { name: "GPT 루틴 붙여넣기" }).click();
   await page.getByLabel("추천 루틴").fill(name + "|80|8|일반|2\n" + name + "|60|10|드랍세트|1");
-  await page.getByRole("button", { name: "이 날짜에 추가" }).click();
+  await page.getByRole("button", { name: "이 날짜의 계획 교체" }).click();
   await expect(card.getByRole("checkbox")).toHaveCount(3);
   await expect(page.locator(".session-summary")).toContainText("0세트");
   await card.getByLabel("1세트 횟수", { exact: true }).fill("6");
@@ -102,6 +102,47 @@ test("pasted targets become recorded sets only when checked and survive reload",
   await expect(card.getByLabel("1세트 수행 완료")).toBeChecked();
   await expect(timer).toHaveCount(0);
   await expect(card.getByLabel("2세트 수행 완료")).not.toBeChecked();
+});
+
+test("replacing a full plan is repeatable and clearing it preserves performed sets and the day note", async ({ page, request }) => {
+  const date = "2026-02-27";
+  const card = await open(page, date);
+  await page.getByLabel("오늘의 메모").fill("세션 메모");
+  const openImport = page.getByRole("button", { name: "GPT 루틴 붙여넣기" });
+  const input = page.getByLabel("추천 루틴");
+  const replace = page.getByRole("button", { name: "이 날짜의 계획 교체" });
+  const clear = page.getByRole("button", { name: "이 날짜의 미수행 계획 비우기" });
+  await openImport.click();
+  await input.fill(name + "|80|8|일반|3");
+  await replace.click();
+  await card.getByLabel("2세트 횟수", { exact: true }).fill("6");
+  await card.getByLabel("2세트 수행 완료").check();
+  for (let i = 0; i < 2; i++) {
+    await openImport.click();
+    await input.fill(name + "|75|10|일반|2");
+    await replace.click();
+    await expect(card.locator(".set-row")).toHaveCount(2);
+    await expect(card.getByLabel("2세트 횟수", { exact: true })).toHaveValue("6");
+  }
+  await openImport.click();
+  await input.fill("0");
+  page.once("dialog", dialog => dialog.dismiss());
+  await clear.click();
+  await expect(input).toBeVisible();
+  page.once("dialog", dialog => dialog.accept());
+  await clear.click();
+  await page.clock.runFor(5000);
+  await expect.poll(async () => (await stored(request, date)).entries[0]?.sets).toEqual([
+    { weight: 80, reps: 6, type: "normal", completed: true }
+  ]);
+  await page.reload();
+  await expect(page.getByLabel("오늘의 메모")).toHaveValue("세션 메모");
+  await card.getByLabel("1세트 수행 완료").uncheck();
+  await openImport.click();
+  page.once("dialog", dialog => dialog.accept());
+  await clear.click();
+  await page.clock.runFor(5000);
+  await expect.poll(async () => (await stored(request, date)).entries).toEqual([]);
 });
 
 test("copy inserts the current set below without overwriting later sets and autosaves after five seconds", async ({ page, request }) => {

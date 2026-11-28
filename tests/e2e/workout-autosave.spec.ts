@@ -23,6 +23,36 @@ async function open(page: Page, date: string) {
   return page.getByRole("article", { name, exact: true });
 }
 
+test("manual parts persist without sets and share two calendar slots with completed exercises", async ({ page, request }) => {
+  const date = "2026-02-28";
+  await page.context().addCookies([{ name: "yc_session", value: token(), domain: "127.0.0.1", path: "/" }]);
+  await page.goto("/workouts/" + date);
+  const choose = page.getByRole("button", { name: "부위 직접 체크" });
+  const back = page.getByRole("button", { name: "등", exact: true });
+  await choose.click();
+  await back.click();
+  await page.getByRole("button", { name: "운동 기록 저장", exact: true }).click();
+  await expect.poll(async () => (await stored(request, date)).manualParts).toEqual(["back"]);
+  await page.reload();
+  await expect(page.locator(".representative-parts .workout-tag")).toHaveText(["등"]);
+  await expect(page.locator(".session-summary")).toContainText("0세트");
+  const calendarParts = async () => {
+    const res = await request.get("/api/workout-parts?month=2026-02", { headers: auth() });
+    return (await res.json()).logs.filter((log: { date: string }) => log.date === date).map((log: { body_part: string }) => log.body_part);
+  };
+  expect(await calendarParts()).toEqual(["back"]);
+  const session = await stored(request, date);
+  const bench = newEntry(exerciseCatalog.find(e => e.name === name)!);
+  bench.sets = [{ weight: 60, reps: 8, completed: true }];
+  expect((await request.put("/api/workouts", { headers: auth(), data: { ...session, entries: [bench] } })).ok()).toBe(true);
+  expect(await calendarParts()).toEqual(["back", "chest"]);
+  await page.reload();
+  await choose.click();
+  await back.click();
+  await page.getByRole("button", { name: "운동 기록 저장", exact: true }).click();
+  await expect.poll(calendarParts).toEqual(bench.tags.slice(0, 2));
+});
+
 test("machine gyms save separately from the session and appear in the picker", async ({ page, request }) => {
   const barbell = await open(page, "2026-02-25");
   await expect(barbell.locator(".gym-selector")).toHaveCount(0);

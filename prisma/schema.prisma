@@ -169,6 +169,7 @@ model WorkoutSession {
   userId    String
   date      DateTime
   entries   Json
+  manualParts String[] @default([])
   note      String   @default("")
   revision  Int      @default(1)
   createdAt DateTime @default(now())

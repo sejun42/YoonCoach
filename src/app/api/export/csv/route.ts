@@ -83,7 +83,7 @@ export async function GET() {
       readEntries(session.entries).flatMap((entry) => entry.sets.map((set, index) => ({ date: toYmd(session.date), exercise_id: entry.id, exercise: entry.name,
         tags: entry.tags.join("|"), main: entry.isMain, set: index + 1, weight_kg: set.weight, reps: set.reps, rir: set.rir, gear: set.gear?.join("|"), set_type: set.type ?? "normal", completed: set.completed ?? (set.weight !== null && set.reps !== null), settings: JSON.stringify(entry.settings) }))))),
     "", "# workout_sessions",
-    rowsToCsv(["date", "note", "entries_json"], sessions.map((session) => ({ date: toYmd(session.date), note: session.note, entries_json: JSON.stringify(session.entries) }))),
+    rowsToCsv(["date", "note", "entries_json", "manual_parts"], sessions.map((session) => ({ date: toYmd(session.date), note: session.note, entries_json: JSON.stringify(session.entries), manual_parts: session.manualParts.join("|") }))),
     "", "# workout_routines",
     rowsToCsv(["name", "entries_json"], routines.map((routine) => ({ name: routine.name, entries_json: JSON.stringify(routine.entries) }))),
     "", "# custom_exercises",

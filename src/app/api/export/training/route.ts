@@ -20,7 +20,7 @@ export async function GET() {
   const orderBy = { date: "asc" as const };
   const [catalog, sessions, parts, weights] = await Promise.all([
     userExercises(auth.userId),
-    db.workoutSession.findMany({ where, orderBy, select: { date: true, entries: true, note: true } }),
+    db.workoutSession.findMany({ where, orderBy, select: { date: true, entries: true, note: true, manualParts: true } }),
     db.workoutBodyPartLog.findMany({ where, orderBy, select: { date: true, bodyPart: true } }),
     db.weighIn.findMany({ where, orderBy, select: { date: true, weightKg: true } })
   ]);
@@ -29,6 +29,7 @@ export async function GET() {
   }));
   for (const session of sessions) {
     const 날짜 = toYmd(session.date);
+    for (const part of session.manualParts) rows.push({ 구분: "직접 체크한 부위", 날짜, 부위: partLabel(part) });
     if (session.note) rows.push({ 구분: "운동 메모", 날짜, 메모: session.note });
     for (const [index, entry] of readEntries(session.entries).entries()) {
       const fields = { ...exerciseFields(entry), 운동순서: index + 1, 메인: entry.isMain ? "예" : "아니오",

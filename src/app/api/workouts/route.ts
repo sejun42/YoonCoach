@@ -3,7 +3,7 @@ import { parseJson, requireAuth, jsonError } from "@/lib/api";
 import { dateFromYmd } from "@/lib/date";
 import { db } from "@/lib/db";
 import { calendarDateSchema } from "@/lib/schemas";
-import { sameWorkout, workoutSaveSchema } from "@/lib/workouts";
+import { manualPartsSchema, sameWorkout, workoutSaveSchema } from "@/lib/workouts";
 import { canonicalEntries, readEntries } from "@/lib/services/workouts";
 import { readWorkoutDay } from "@/lib/services/workout-day";
 
@@ -34,11 +34,11 @@ export async function PUT(req: NextRequest) {
     if ((previous?.revision ?? 0) !== revision) {
       // A response may be lost after the commit. Repeating the same payload is
       // successful, but never use a stale revision to overwrite different data.
-      const prior = { date: parsed.data.date, entries: readEntries(previous?.entries), note: previous?.note ?? "", revision: previous?.revision ?? 0 };
-      return sameWorkout(prior, { ...parsed.data, entries }) ? prior : null;
+      const prior = { manualParts: manualPartsSchema.parse(previous?.manualParts ?? []), date: parsed.data.date, entries: readEntries(previous?.entries), note: previous?.note ?? "", revision: previous?.revision ?? 0 };
+      return sameWorkout(prior, { ...parsed.data, manualParts: parsed.data.manualParts ?? prior.manualParts, entries }) ? prior : null;
     }
     const saved = await tx.workoutSession.upsert({ where: { userId_date: { userId: auth.userId, date } },
-      create: { userId: auth.userId, date, entries, note }, update: { entries, note, revision: { increment: 1 } } });
+      create: { userId: auth.userId, date, entries, note, manualParts: parsed.data.manualParts }, update: { entries, note, manualParts: parsed.data.manualParts, revision: { increment: 1 } } });
     const previousEntries = readEntries(previous?.entries);
     for (const entry of entries) {
       const old = previousEntries.find((item) => item.id === entry.id);
@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest) {
           create: { userId: auth.userId, exerciseId: entry.id, settings: entry.settings }, update: { settings: entry.settings } });
       }
     }
-    return { date: parsed.data.date, entries, note, revision: saved.revision };
+    return { date: parsed.data.date, entries, note, manualParts: saved.manualParts, revision: saved.revision };
   }, { timeout: 15000 });
   if (!result) return jsonError("다른 화면에서 이 날짜를 수정했습니다. 입력 내용을 복사한 후 최신 기록을 다시 불러와 주세요.", 409);
   return NextResponse.json({ session: result });

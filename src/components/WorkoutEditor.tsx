@@ -11,7 +11,7 @@ import { exerciseMetrics, newEntry, recordedSets, representativeParts, routineEn
 import PlanImport from "./PlanImport";
 import ExercisePicker from "./ExercisePicker";
 import MachineSettings from "./MachineSettings";
-import { PartTags, WorkoutDialog } from "./WorkoutPrimitives";
+import { PartTags, TagPicker, WorkoutDialog } from "./WorkoutPrimitives";
 import RestTimer from "./RestTimer";
 import CopyWorkout from "./CopyWorkout";
 import WorkoutExerciseCard from "./WorkoutExerciseCard";
@@ -68,7 +68,9 @@ export default function WorkoutEditor({ date }: { date: string }) {
   const dirty = !!draft;
   const saveFailed = !!saveState && ["error", "conflict", "invalid"].includes(saveState.kind);
   const visibleMessage = saveState?.message || message;
-  const parts = representativeParts(entries);
+  const [editingParts, setEditingParts] = useState(false);
+  const manualParts = session?.manualParts ?? [];
+  const parts = representativeParts(entries, manualParts);
   const totalSets = entries.reduce((sum, entry) => sum + recordedSets(entry).length, 0);
   const volume = entries.reduce((sum, entry) => sum + (exerciseMetrics(entry)?.volume ?? 0), 0);
   const settingsEntry = entries.find((entry) => entry.id === settingsId);
@@ -148,8 +150,10 @@ export default function WorkoutEditor({ date }: { date: string }) {
     {storageError && <p className="notice error" role="alert">이 브라우저에 임시 입력을 보관하지 못했습니다. 화면을 닫기 전에 서버에 ‘저장됨’으로 표시되는지 확인해 주세요.</p>}
     {date > today && today && <p className="notice workout-future">미래 날짜의 기록입니다. 오늘까지의 기록만 성장 그래프에 반영됩니다.</p>}
     <div className="session-summary"><div><span className="metric-label">운동 종목</span><strong>{entries.length}<small>개</small></strong></div><div><span className="metric-label">기록한 세트</span><strong>{totalSets}<small>세트</small></strong></div><div><span className="metric-label">총 볼륨</span><strong>{Number(volume.toFixed(2)).toLocaleString()}<small>kg·회</small></strong></div></div>
-    <div className="representative-parts"><span className="metric-label">오늘의 대표 부위</span>{parts.length ? <PartTags tags={parts} /> : <span className="muted">세트를 기록하면 자동으로 정해집니다.</span>}</div>
-    <p className="workout-help">메인 종목의 부위 우선 · 입력한 세트 수 기준 · 최대 2개. 무게와 횟수를 모두 입력한 세트만 집계합니다.</p>
+    <div className="representative-parts"><span className="metric-label">오늘의 대표 부위</span>{parts.length ? <PartTags tags={parts} /> : <span className="muted">세트 기록 또는 직접 선택</span>}<button type="button" className="text-button" aria-expanded={editingParts} onClick={() => setEditingParts(!editingParts)}>부위 직접 체크</button></div>
+    {editingParts && <div className="card-tag-editor"><p className="workout-help">세트를 기록하지 못한 부위를 선택하세요. 직접 체크한 부위가 캘린더에 우선 표시됩니다.</p>
+      <TagPicker tags={manualParts} onChange={selected => { if (session) setDraft({ ...session, manualParts: selected }); }} /></div>}
+    <p className="workout-help">캘린더에는 최대 2개 부위가 표시됩니다. 남는 자리는 메인 종목과 수행한 세트 수로 정합니다.</p>
     {!!data?.legacyParts.length && <details className="legacy-workout"><summary>이 날짜의 기존 부위 기록</summary><PartTags tags={data.legacyParts} /><p className="workout-help">기존 기록은 보관됩니다. 세트를 기록하면 캘린더에는 새 대표 부위가 표시됩니다.</p></details>}
     {libraryError && <div role="alert" className="notice error">내 종목과 루틴을 불러오지 못했습니다. <button onClick={() => void reloadLibrary()}>다시 시도</button></div>}
     <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
@@ -171,7 +175,7 @@ export default function WorkoutEditor({ date }: { date: string }) {
         <label className="workout-note">오늘의 메모<textarea className="field" rows={2} maxLength={2000} placeholder="컨디션, 자세, 다음 운동에서 기억할 것" value={session?.note ?? ""} onChange={(event) => edit(entries, event.target.value)} /></label>
         <div className="workout-savebar"><div><span className="save-state">{saving ? "서버에 저장 중 · 계속 입력해도 됩니다" : saveState?.kind === "error" ? "임시 입력 유지 · 15초 후 재시도" : dirty ? "입력을 멈추면 5초 후 자동 저장" : "변경 사항은 자동으로 저장됩니다"}</span>{dirty && <button className="text-button" type="button" disabled={saving} onClick={() => { if (window.confirm("저장 전 변경을 버리고 저장된 기록으로 돌아갈까요?")) { setDraft(null); setMessage(""); } }}>변경 취소</button>}</div>
           <div className="workout-save-actions">
-            <CopyWorkout date={date} entries={entries} note={session?.note ?? ""} disabled={!totalSets && !session?.note?.trim()} />
+            <CopyWorkout date={date} entries={entries} manualParts={manualParts} note={session?.note ?? ""} disabled={!manualParts.length && !totalSets && !session?.note?.trim()} />
             <button className="btn btn-primary" type="submit" disabled={!dirty || saving}><Check size={17} />{saving ? "저장 중" : "운동 기록 저장"}</button>
           </div></div>
       </fieldset>

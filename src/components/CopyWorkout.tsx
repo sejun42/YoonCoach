@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { Copy } from "lucide-react";
+import { currentBodyParts, type BodyPartKey } from "@/lib/body-parts";
 import { recordedSets, setTypes, type WorkoutEntry } from "@/lib/workouts";
 import { WorkoutDialog } from "./WorkoutPrimitives";
 
-export default function CopyWorkout({ date, entries, note, disabled }: {
-  date: string; entries: WorkoutEntry[]; note: string; disabled: boolean;
+export default function CopyWorkout({ date, entries, manualParts, note, disabled }: {
+  date: string; manualParts: BodyPartKey[]; entries: WorkoutEntry[]; note: string; disabled: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState("");
   async function copy() {
     const lines = [date + " 운동 기록"];
+    if (manualParts.length) lines.push("직접 체크한 부위: " + currentBodyParts.filter(part => manualParts.includes(part.key)).map(part => part.label).join(", "));
     for (const entry of entries) {
       const sets = recordedSets(entry);
       if (!sets.length) continue;

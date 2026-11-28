@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   }
   const [legacy, sessions] = await Promise.all([
     db.workoutBodyPartLog.findMany({ where: { userId: auth.userId }, orderBy: [{ date: "asc" }, { bodyPart: "asc" }], select: { id: true, date: true, bodyPart: true } }),
-    db.workoutSession.findMany({ where: { userId: auth.userId }, select: { id: true, date: true, entries: true } })
+    db.workoutSession.findMany({ where: { userId: auth.userId }, select: { id: true, date: true, entries: true, manualParts: true } })
   ]);
   // Session tags are derived, so historical manual records remain intact in their original table.
   const byDate = new Map<string, { id: string; date: string; body_part: typeof legacy[number]["bodyPart"] }[]>();
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     byDate.set(date, [...(byDate.get(date) ?? []), { id: log.id, date, body_part: log.bodyPart }]);
   }
   for (const session of sessions) {
-    const parts = representativeParts(readEntries(session.entries));
+    const parts = representativeParts(readEntries(session.entries), session.manualParts);
     if (parts.length) byDate.set(toYmd(session.date), parts.map((body_part) => ({ id: session.id + body_part, date: toYmd(session.date), body_part })));
   }
   const allLogs = [...byDate.values()].flat().sort((a, b) => a.date.localeCompare(b.date));

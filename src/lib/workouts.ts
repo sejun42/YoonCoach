@@ -16,15 +16,16 @@ export const rirSchema = z.number().int().min(0).max(5).optional();
 export const workoutSetSchema = z.object({ weight: z.number().finite().min(0).max(2000).nullable(), reps: z.number().int().min(1).max(1000).nullable(), type: setTypeSchema, rir: rirSchema, gear: gearSchema, completed: z.boolean().optional() });
 export const workoutEntrySchema = exerciseSchema.extend({ isMain: z.boolean(), sets: z.array(workoutSetSchema).min(1).max(50), settings: machineSettingsSchema });
 export const workoutEntriesSchema = z.array(workoutEntrySchema).max(60).refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length);
-export const workoutSaveSchema = z.object({ date: calendarDateSchema, revision: z.number().int().nonnegative(), entries: workoutEntriesSchema, note: z.string().trim().max(2000) });
+export const manualPartsSchema = z.array(z.enum(exerciseTagKeys)).max(2).refine(parts => new Set(parts).size === parts.length);
+export const workoutSaveSchema = z.object({ date: calendarDateSchema, revision: z.number().int().nonnegative(), entries: workoutEntriesSchema, manualParts: manualPartsSchema.optional(), note: z.string().trim().max(2000) });
 export const routineSchema = z.object({ name: z.string().trim().min(1).max(60), entries: workoutEntriesSchema.refine((entries) => entries.length > 0) });
 export const customExerciseSchema = exerciseSchema.omit({ id: true });
 export type WorkoutSet = z.infer<typeof workoutSetSchema>;
 export type MachineSetting = z.infer<typeof machineSettingsSchema>[number];
 export type WorkoutEntry = z.infer<typeof workoutEntrySchema>;
-export type WorkoutSession = { date: string; revision: number; entries: WorkoutEntry[]; note: string };
+export type WorkoutSession = { date: string; revision: number; entries: WorkoutEntry[]; manualParts?: ExerciseTag[]; note: string };
 export function sameWorkout(a: WorkoutSession, b: WorkoutSession) {
-  return a.date === b.date && a.note.trim() === b.note.trim() && JSON.stringify(a.entries) === JSON.stringify(b.entries);
+  return a.date === b.date && JSON.stringify(a.manualParts ?? []) === JSON.stringify(b.manualParts ?? []) && a.note.trim() === b.note.trim() && JSON.stringify(a.entries) === JSON.stringify(b.entries);
 }
 export type Routine = { id: string; name: string; entries: WorkoutEntry[]; preset?: boolean };
 export type WorkoutHistory = { date: string; entry: WorkoutEntry };
@@ -37,7 +38,7 @@ export function newEntry(exercise: Exercise, settings?: MachineSetting[]): Worko
 }
 export const recordedSets = (entry: WorkoutEntry) => entry.sets.filter((set): set is WorkoutSet & { weight: number; reps: number } => set.completed !== false && set.weight !== null && set.reps !== null && set.reps > 0);
 
-export function representativeParts(entries: WorkoutEntry[]): ExerciseTag[] {
+export function representativeParts(entries: WorkoutEntry[], manualParts: readonly string[] = []): ExerciseTag[] {
   const scores = new Map<ExerciseTag, { main: number; total: number }>();
   for (const entry of entries) {
     const count = recordedSets(entry).length / entry.tags.length;
@@ -47,8 +48,10 @@ export function representativeParts(entries: WorkoutEntry[]): ExerciseTag[] {
       scores.set(tag, { main: score.main + (entry.isMain ? count : 0), total: score.total + count });
     }
   }
-  return [...scores].sort(([a, x], [b, y]) => y.main - x.main || y.total - x.total || exerciseTagKeys.indexOf(a) - exerciseTagKeys.indexOf(b))
-    .slice(0, 2).map(([tag]) => tag);
+  const ranked = [...scores].sort(([a, x], [b, y]) => y.main - x.main || y.total - x.total || exerciseTagKeys.indexOf(a) - exerciseTagKeys.indexOf(b))
+    .map(([tag]) => tag);
+  const manual = manualParts.filter((part): part is ExerciseTag => exerciseTagKeys.some(key => key === part));
+  return [...new Set([...manual, ...ranked])].slice(0, 2);
 }
 
 export function exerciseMetrics(entry: WorkoutEntry) {
